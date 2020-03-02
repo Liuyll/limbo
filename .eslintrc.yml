@@ -1,0 +1,38 @@
+env:
+    es6: true
+    node: true
+    browser: true
+parser: babel-eslint
+extends: 
+  - 'eslint:recommended'
+parserOptions:
+  ecmaVersion: 2018
+  sourceType: module
+  ecmaFeatures: 
+    jsx: true
+rules:
+  indent:
+    - error
+    - 4
+  semi:
+    - error
+    - never
+  no-use-before-define:
+    - error
+    - functions: false
+  arrow-spacing:
+    - 1
+    - before: true
+      after: true
+  no-console:
+    - error
+    - { allow: ["error"] }
+  object-curly-spacing:
+    - warn
+    - always
+  key-spacing:
+    - warn
+    - afterColon: true
+  react/display-name: 0
+  space-infix-ops:
+    - warn
