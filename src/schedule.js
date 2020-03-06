@@ -17,7 +17,7 @@ export function scheduleTask(cb) {
         cb,
         startTime,
         // 为后续优先级添加截止时间,实际上是无限
-        dueTime: startTime + timeout,
+        expiration: startTime + timeout,
     }
     heapq.push(taskQueue,newTask,cmp)
     // 初始任务为启动轮询
@@ -31,9 +31,9 @@ function beginWork(){
     let currentTask = heapq.top(taskQueue)
     while(currentTask) {
         // 超过截止时间并且该帧可用时间已经结束
-        if(currentTask.dueTime < getTime() && shouldYield()) break
+        if(currentTask.expiration < getTime() && shouldYield()) break
         let cb = currentTask.cb
-        const canExecute = currentTask.dueTime >= getTime()
+        const canExecute = currentTask.expiration >= getTime()
         // 标识任务是否执行完
         const isTaskSliceFinish = cb(canExecute)
         if(isTaskSliceFinish) currentTask.cb = isTaskSliceFinish
@@ -72,5 +72,5 @@ export const planWork = (() => {
 
 // heap 小顶堆
 function cmp(task1,task2) {
-    return task1.dueTime - task2.dueTime
+    return task1.expiration - task2.expiration
 }
