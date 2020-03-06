@@ -2,8 +2,12 @@ import shallowEqual from 'shallowequal'
 import { getCurrentFiber,schedule_work } from './reconcile'
 
 const Hook = function() {
-    this.state = {}
+    this.state = null
     this.next = null
+    this.deps = null
+    this.effect = null
+    this.clear = null
+    this.init = true
 }
 
 export let getHook = getCurrentFiberHook()
@@ -19,17 +23,34 @@ export function useReducer(reducer,initState) {
             schedule_work(fiber)
         }
     }
+    initHook(hook,(hook) => hook.state = initState)
     return [initState,effect]
 }
 
-export function useEffect(fn,deps) {
+export function useEffect(fn,deps,isLayout = false) {
     const [hook,fiber] = getHook()
-    const oldDeps = hook[1]
+    const oldDeps = hook.deps
     if(shallowEqual(oldDeps,deps)) {
-        hook[1] = deps
-        hook[0] = fn
-        fiber.hooks.effect.push(fn)
+        hook.deps = deps
+        hook.cb = fn
+        fiber.hooks[isLayout ? 'layout' : 'effect'].push(fn)
     }
+}
+
+export function useDef(init) {
+    return useMemo(() => ({ current: init }),[])
+}
+
+export function useMemo(cb,deps) {
+    const [hook] = getHook()
+    if(!initHook(hook,(hook) => {
+        hook.state = cb()
+        hook.deps = deps
+    })) {
+        if(shallowEqual(deps,hook.deps)) return hook.state
+        else return (hook.state = cb())
+    } 
+    return hook.state 
 }
 
 export function getCurrentFiberHook() {
@@ -41,7 +62,23 @@ export function getCurrentFiberHook() {
     }
 }
 
+export function useLayoutEffect(fn,deps) {
+    useEffect(fn,deps,true)
+}
 
 export function reComputeHook() {
     getHook = getCurrentFiberHook()
+}
+
+export function setInitState(hook) {
+    hook.init = false
+}
+
+export function initHook(hook,cb) {
+    if(hook.init) {
+        setInitState(hook)
+        cb(hook)
+        return true
+    }
+    return false
 }

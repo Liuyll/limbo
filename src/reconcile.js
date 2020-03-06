@@ -225,18 +225,20 @@ function commit(fiber) {
     }
 }
 
+// 这里涉及到diff的具体实现
+// 未来会实现
 function hashKids() {
     return {}
 }
 
 function executeEffectCb(effectState) {
-    const effect = effectState[0]
+    const effect = effectState.effect
     const clear = effect()
     // 清理函数
-    if(isFn(clear)) effectState[2] = clear
+    if(isFn(clear)) effectState.clear = clear
 }
 
 function clearPrevEffect(effectState) {
-    const clear = effectState[2]
+    const { clear } = effectState
     clear && clear()
 }

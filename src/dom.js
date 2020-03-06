@@ -1,4 +1,5 @@
 import { isFn } from './tools'
+import { enqueueListenTo } from './events'
 
 export function updateElement(fiber,shouldExecuteEffect) {
     const { oldProps,props: newProps } = fiber
@@ -48,27 +49,4 @@ export function mountElement(fiber) {
     return dom
 }
 
-const _hub__set = Symbol()
-const _hub__map = Symbol()
-
-const enqueueListenTo = (() => {
-    const listenSet = new Set()
-    const listenMap = new Map()
-    document[_hub__set] = listenSet
-    document[_hub__map] = listenMap
-
-    return (eventType,fiber,handler) => {
-        if(!listenSet.has(eventType)) { 
-            listenSet.add(eventType)
-            listenMap.set(eventType,new Map())
-        }
-
-        const currentEventHub = listenMap.get(eventType)
-        currentEventHub.set(fiber,handler)
-    }
-})()
-
-export function initEventPluginSystem() {
-
-}
 

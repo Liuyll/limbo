@@ -13,6 +13,11 @@ export function getParentElementFiber(fiber) {
     return fiber
 }
 
+export function getClosetFiberFromNode(fiber) {
+    const parentFiber = getParentElementFiber(fiber)
+    return parentFiber
+}
+
 export function getNearestChildElementFiber(fiber) {
     while(fiber.child && fiber.child.tag == Hook) {
         fiber = fiber.child
