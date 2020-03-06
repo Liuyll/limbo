@@ -1,12 +1,11 @@
 import { 
-    getClosetFiberFromNode
-} from './events'
+    getClosetFiberFromNode,
+    getTopLevelTypeFromNativeType,
+} from '.'
 
 const _hub__set = Symbol()
 const _hub__map = Symbol()
-
-const TOP_CLICK = 0
-// const TOP_BLUR = 1
+const plugins = []
 
 const bookKeepingPool = []
 const pool_length = 10
@@ -17,14 +16,8 @@ export const enqueueListenTo = (() => {
     document[_hub__set] = listenSet
     document[_hub__map] = listenMap
 
-    return (eventType,fiber,handler) => {
-        if(!listenSet.has(eventType)) { 
-            listenSet.add(eventType)
-            listenMap.set(eventType,new Map())
-        }
-
-        const currentEventHub = listenMap.get(eventType)
-        currentEventHub.set(fiber,handler)
+    return (eventType) => {
+        registeredEventType(eventType)
     }
 })()
 
@@ -33,17 +26,12 @@ export function initEventPluginSystem() {
 }
 
 export function registeredEventType(type) {
-    let rawTypeName
+    let rawTypeName = getTopLevelTypeFromNativeType(type)
     if(!document[_hub__set].has(type)) {
-        switch(type) {
-        case TOP_CLICK: {
-            rawTypeName = 'click'
-            document.addEventListener(rawTypeName,dispatchEvent(TOP_CLICK))
-            break
-        } 
-        }
         document[_hub__set].add(type) 
     }
+    
+    document.addEventListener(getTopLevelTypeFromNativeType(type),dispatchEvent(rawTypeName))
 }
 
 // nativeEvent由浏览器传入
@@ -120,7 +108,7 @@ function handleTopLevel(bookKeeping) {
         // 这里是最后的核心,暂时不实现它
         // 对于不同的事件,react抽象了几类pluginEvents
         // 非常感兴趣可以看源码
-        runExtractedPluginEvents(
+        runExtractedPluginEventsInBatch(
             topLevelType,
             ancestor,
             nativeEvent,
@@ -129,6 +117,74 @@ function handleTopLevel(bookKeeping) {
     }
 }
 
-function runExtractedPluginEvents() {
+function runExtractedPluginEventsInBatch(
+    topLevelType,
+    ancestor,
+    nativeEvent,
+    eventTarget
+) {
+    const events = runExtractedPluginEvents(topLevelType,ancestor,nativeEvent,eventTarget)
+    batch(events)
+}
 
+// 该函数用于生成合适的合成事件
+function runExtractedPluginEvents(
+    topLevelType,
+    targetInst,
+    nativeEvent,
+    nativeEventTarget
+) {
+    let events = null
+    for(const possiblePlugin of plugins) {
+        const extractedEvents = possiblePlugin.extractedEvents(
+            topLevelType,
+            targetInst,
+            nativeEvent,
+            nativeEventTarget
+        )
+
+        if(extractedEvents) {
+            events = extractedEvents
+        }
+    }
+
+    return events
+}
+
+
+function batch(events) {
+    for(let event of events) {
+        executeDispatchesAndRelease(event)
+    }
+}
+
+function executeDispatchesAndRelease(event) {
+    executeDispatchesInOrder(event)
+
+    // 如果没有调用persist()方法则直接回收
+    if (!event.isPersistent()) {
+        event.release(event)
+    }
+}
+
+function executeDispatchesInOrder(event) {
+    // 获取绑定在该类型事件上的全部回调函数
+    // 在这里模拟了stopPropagation的新闻给
+    const dispatchListeners = event._dispatchListeners
+    const dispatchInstances = event._dispatchInstances
+
+    if(dispatchListeners.pop) {
+        for(let i = 0;i < dispatchListeners.length; i++) {
+            const curListener = dispatchListeners[i]
+            event.currentTarget = dispatchInstances[i].node
+            curListener(event)
+            if(event.isPropagationStopped()) break
+        }
+    } else {
+        event.currentTarget = dispatchInstances
+        dispatchListeners(event)
+    }
+
+    event._dispatchListeners = null
+    event._dispatchInstances = null
 }

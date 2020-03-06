@@ -61,6 +61,24 @@ limbo去掉了一系列无用的`fiber`工作，比如：
 
 
 
+#### 拆分：
+
+limbo把任务拆成了两种level:
+
+1. re-render 
+2. single fiber
+
+并对每种级别任务的最小运行周期时做了`shouldYield`检查，并在下一个帧工作时间恢复未完成的任务。
+
+
+
+##### API依赖：
+
+1. `MessageChannel`
+2. `requestAnimationFrame`
+
+
+
 
 
 

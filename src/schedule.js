@@ -6,11 +6,11 @@ const frame_length = 1000 / fluency_frame_count
 // heap
 let taskQueue = []
 let current_frame_deadline = null
-let current_callback = null
+let current_task = null
 
 const getTime = () => performance.now()
 
-export function scheduleCallback(cb) {
+export function scheduleTask(cb) {
     let startTime = getTime()
     let timeout = 1000 * 60 * 24
     let newTask = {
@@ -21,10 +21,13 @@ export function scheduleCallback(cb) {
     }
     heapq.push(taskQueue,newTask,cmp)
     // 初始任务为启动轮询
-    current_callback = polling
+    current_task = beginWork
+    // eslint-disable-next-line
+    planWork()
 }
 
-function polling(){
+// re-render level task
+function beginWork(){
     let currentTask = heapq.top(taskQueue)
     while(currentTask) {
         // 超过截止时间并且该帧可用时间已经结束
@@ -42,13 +45,15 @@ function polling(){
     return !!currentTask
 }   
 
-function beforePolling() {
+function startOrRecoverWork() {
     current_frame_deadline = getTime() + frame_length
-    let isTaskNotFinish = current_callback()
+
+    // 若beginWork未执行完毕,将会恢复执行
+    let isTaskNotFinish = current_task()
     if(isTaskNotFinish) {
         // eslint-disable-next-line
         planWork()
-    } else (current_callback = null)
+    } else (current_task = null)
 }
 
 // 超过当前帧则延缓任务,否则继续执行
@@ -61,7 +66,7 @@ export function shouldYield() {
 // 不做setTimeout回退
 export const planWork = (() => {
     const { port1,port2 } = new MessageChannel()
-    port1.onmessage = beforePolling
+    port1.onmessage = startOrRecoverWork
     return (cb) => cb && requestAnimationFrame(cb) || port2.postMessage(null)
 })()
 

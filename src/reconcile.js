@@ -1,4 +1,4 @@
-import { scheduleCallback,shouldYield,planWork } from './schedule'
+import { scheduleTask,shouldYield,planWork } from './schedule'
 import { createFiber,getParentElementFiber,HostFiber,setCurrentFiber,Hook } from './fiber'
 import { reComputeHook } from './hooks'
 export { getCurrentFiber } from './fiber'
@@ -38,11 +38,13 @@ export function render(vnode,mountDom,cb) {
 
 export function schedule_work(fiber) {
     updateQueue.push(fiber)
-    scheduleCallback(reconcileWork)
+    scheduleTask(reconcileWork)
 }
 
 function reconcileWork(canExecute) {
     if(!current_execute_work_slice) current_execute_work_slice = updateQueue.shift()
+
+    // fiber level task
     while(current_execute_work_slice && (!shouldYield() || canExecute)) {
         try {
             // reconcile 可能执行多次
