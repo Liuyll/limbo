@@ -82,9 +82,16 @@ function beginWork(work) {
 }
 
 function *reconcile(){
-   while(fiberTraversed) {
-      yield asyncDiffFiber()
+   while(childTraversed) {
+      yield* asyncDiffHookFiber()
    }
+}
+
+function *asyncDiffHookFiber() {
+  // 我们假设它无递归Hook子节点
+  while(!shouleYield() && childTraversed) {
+    yield syncDiffHostFiber()
+  }
 }
 ```
 
