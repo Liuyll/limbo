@@ -80,6 +80,7 @@ function beginWork(work) {
     if(!work.done) beginWork()
   })
 }
+
 function *reconcile(){
    while(fiberTraversed) {
       yield asyncDiffFiber()
