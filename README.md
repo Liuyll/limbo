@@ -81,16 +81,17 @@ function beginWork(work) {
   })
 }
 
-function *reconcile(){
+function *reconcile(hostFiber){
+   currentTask = asyncDiffHookFiber(hostFiber.children)
    while(childTraversed) {
-      yield* asyncDiffHookFiber()
+      while(!shouldYield() && !currentTask.done()) yield currentTask.next()
    }
 }
 
-function *asyncDiffHookFiber() {
+function *asyncDiffHookFiber(fiber) {
   // 我们假设它无递归Hook子节点
-  while(!shouleYield() && childTraversed) {
-    yield syncDiffHostFiber()
+  while(childTraversed) {
+    yield* syncDiffHostFiber(fiber.children)
   }
 }
 ```
