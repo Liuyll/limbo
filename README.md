@@ -44,7 +44,7 @@ limbo去掉了一系列无用的`fiber`工作，比如：
 
 ### 怎么调度？
 
-1. 我们以每帧`16.66ms`标准进行调度，以每个`fiber`更新为最小单位进行调度
+1. 我们以每帧`16.66ms`标准进行hack `ric`api，以每个`fiber`更新为最小单位进行调度
 
    `fiber更新` 中有些细节值得探讨：
 
@@ -73,8 +73,8 @@ limbo把任务拆成了两种level:
 #### 一个简单的调度
 ```
 function beginWork(work) {
-  requestIdleCallback(time => {
-    while(time.timeRemaining) {
+  requestIdleCallback(deadline => {
+    while(deadline.timeRemaining) {
       work.next()
     }
     if(!work.done) beginWork()
