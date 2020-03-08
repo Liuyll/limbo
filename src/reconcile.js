@@ -2,7 +2,7 @@ import { scheduleTask,shouldYield,planWork } from './schedule'
 import { createFiber,getParentElementFiber,HostFiber,setCurrentFiber,Hook } from './fiber'
 import { reComputeHook } from './hooks'
 export { getCurrentFiber } from './fiber'
-import { SCU,insertElement,deleteElement,isFn } from './tools'
+import { SCU,insertElement,deleteElement,isFn,setRef } from './tools'
 import { mountElement,updateElement } from './dom'
 
 const DELETE  = 0b00000001
@@ -47,10 +47,8 @@ function reconcileWork(canExecute) {
     // fiber level task
     while(current_execute_work_slice && (!shouldYield() || canExecute)) {
         try {
-            // reconcile 可能执行多次
-            // 而commit 完全同步,只会执行一次
-            // reconcile 会触发Willxxx 生命周期
-            // 所以在未来v17里,Willxxx 必将被废弃
+            // async diff 
+            // 类组件生命周期可能出现多次调用,慎用
             reconcile(current_execute_work_slice)
         } catch {
             // react 在这里执行了Error Boundary的逻辑
@@ -66,7 +64,7 @@ function reconcileWork(canExecute) {
     // TODO: commit 
     if(prevCommit) {
         let commit_origin = prevCommit
-        beforeCommit(commit_origin)
+        flushCommitQueue(commit_origin)
     }
     return null
 }
@@ -190,12 +188,12 @@ function reconcileChildren(fiber,children) {
 }
 
 // phase2 commit 
-function beforeCommit(fiberRoot) {
+function flushCommitQueue(fiberRoot) {
     commitQueue.forEach((work) => commit(work))
     fiberRoot.done && fiberRoot.done_cb()
-    reset()
+    resetOldCommit()
 
-    function reset() {
+    function resetOldCommit() {
         commitQueue = []
         prevCommit = null
         setCurrentFiber(null)
@@ -203,7 +201,7 @@ function beforeCommit(fiberRoot) {
 }
 
 function commit(fiber) {
-    const { effect,hooks } = fiber
+    const { effect,hooks,ref } = fiber
 
     if(fiber.tag === Hook) {
         if(hooks) {
@@ -225,6 +223,9 @@ function commit(fiber) {
     } else if(effect === ADD) {
         insertElement(fiber)
     }
+
+    // update
+    setRef(ref,fiber.node)
 }
 
 // 这里涉及到diff的具体实现
