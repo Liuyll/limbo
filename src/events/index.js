@@ -29,9 +29,8 @@ export function registeredEventType(type) {
     let rawTypeName = getTopLevelTypeFromNativeType(type)
     if(!document[_hub__set].has(type)) {
         document[_hub__set].add(type) 
+        document.addEventListener(getTopLevelTypeFromNativeType(type),dispatchEvent(rawTypeName))
     }
-    
-    document.addEventListener(getTopLevelTypeFromNativeType(type),dispatchEvent(rawTypeName))
 }
 
 // nativeEvent由浏览器传入

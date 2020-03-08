@@ -7,6 +7,7 @@ const frame_length = 1000 / fluency_frame_count
 let taskQueue = []
 let current_frame_deadline = null
 let current_task = null
+let break_schedule = false
 
 const getTime = () => performance.now()
 
@@ -16,7 +17,9 @@ export function scheduleTask(cb) {
     let newTask = {
         cb,
         startTime,
-        // 为后续优先级添加截止时间,实际上是无限
+        // 为后续优先级添加截止时间
+        // 注意,这里并非idle priority ,而是sync priority
+        // 无限长过期时间只是为了标识
         expiration: startTime + timeout,
     }
     heapq.push(taskQueue,newTask,cmp)
@@ -45,6 +48,15 @@ function beginWork(){
     return !!currentTask
 }   
 
+export function ensureHighPriorityTaskToQueue(task) {
+    cancelSchedule()
+    heapq.push(taskQueue,task,cmp)
+}
+
+function cancelSchedule() {
+    break_schedule = true
+}
+
 function startOrRecoverWork() {
     current_frame_deadline = getTime() + frame_length
 
@@ -58,6 +70,10 @@ function startOrRecoverWork() {
 
 // 超过当前帧则延缓任务,否则继续执行
 export function shouldYield() {
+    if(break_schedule) {
+        break_schedule = false
+        return true
+    }
     return getTime() > current_frame_deadline    
 }
 
