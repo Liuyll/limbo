@@ -7,6 +7,8 @@ export function createFiber(vnode,op) {
 }
 
 export function getParentElementFiber(fiber) {
+    if(!fiber.parent) return null
+    
     while(fiber.parent && fiber.parent.tag == Hook) {
         fiber = fiber.parent
     }
