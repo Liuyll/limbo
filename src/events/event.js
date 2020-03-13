@@ -7,7 +7,9 @@ export function accumulateTwoPhaseDispatches(syntheticEvents) {
 }
 
 export function accumulateListener (inst,type,event) {
-    const registrationEventName = event.eventInfo
+    // type === 'capture' | 'bubble'
+    // eg:onClick -> onClickCapture | onClick
+    const registrationEventName = event.eventInfo.registrationNames[type]
     const listener = getListener(inst,registrationEventName)
     if(listener) {
         event._dispatchListeners = accumulateInto(
