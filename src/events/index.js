@@ -1,7 +1,17 @@
 import { 
     getClosetFiberFromNode,
     getTopLevelTypeFromNativeType,
-} from '.'
+} from './index'
+
+import {
+    SimpleEventPlugin
+} from './plugins'
+
+import {
+    injectEventPluginOrder,
+    DOMEventPluginOrder,
+    injectEventPluginsByName
+} from './registry'
 
 const _hub__set = Symbol()
 const _hub__map = Symbol()
@@ -21,8 +31,11 @@ export const enqueueListenTo = (() => {
     }
 })()
 
-export function initEventPluginSystem() {
-
+export function initEventSystem() {
+    injectEventPluginOrder(DOMEventPluginOrder)
+    injectEventPluginsByName({
+        SimpleEventPlugin
+    })
 }
 
 export function registeredEventType(type) {
@@ -103,27 +116,11 @@ function handleTopLevel(bookKeeping) {
 
     // 冒泡
     for(const ancestor of ancestors) {
-
-        // 这里是最后的核心,暂时不实现它
         // 对于不同的事件,react抽象了几类pluginEvents
-        // 非常感兴趣可以看源码
-        runExtractedPluginEventsInBatch(
-            topLevelType,
-            ancestor,
-            nativeEvent,
-            eventTarget
-        )
+        // 这里只抽象一种plugin,其余的plugin异曲同工
+        const events = runExtractedPluginEvents(topLevelType,ancestor,nativeEvent,eventTarget)
+        batch(events)
     }
-}
-
-function runExtractedPluginEventsInBatch(
-    topLevelType,
-    ancestor,
-    nativeEvent,
-    eventTarget
-) {
-    const events = runExtractedPluginEvents(topLevelType,ancestor,nativeEvent,eventTarget)
-    batch(events)
 }
 
 // 该函数用于生成合适的合成事件
@@ -142,9 +139,7 @@ function runExtractedPluginEvents(
             nativeEventTarget
         )
 
-        if(extractedEvents) {
-            events = extractedEvents
-        }
+        if(extractedEvents) events = extractedEvents
     }
 
     return events
@@ -168,7 +163,7 @@ function executeDispatchesAndRelease(event) {
 
 function executeDispatchesInOrder(event) {
     // 获取绑定在该类型事件上的全部回调函数
-    // 在这里模拟了stopPropagation的新闻给
+
     const dispatchListeners = event._dispatchListeners
     const dispatchInstances = event._dispatchInstances
 

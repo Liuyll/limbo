@@ -2,6 +2,18 @@ import { accumulateTwoPhaseDispatches } from './event'
 
 const DiscreteEvent = 0
 
+const EventInterface = {
+    type: null,
+    target: null,
+    currentTarget: null,
+    bubbles: null,
+    cancelable: null,
+    defaultPrevented: null,
+}
+
+export function publishRegistrationName() {
+
+}
 export const DOMTopLevelEventTypes = {
     'TOP_CLICK': ['click',DiscreteEvent]
 }
@@ -42,20 +54,30 @@ function SyntheticMouseEvent() {
 
 
 // 抹平不同浏览器之间api差异
-// limbo只支持chrome,不做实现,但保留接口
+// limbo只支持chrome,不做兼容实现,但保留对应接口
 function SyntheticEvent(
     eventInfo,
     targetInst,
     nativeEvent,
-    nativeEventTarget
+    // nativeEventTarget
 ) {
     this.targetInst = targetInst
     this.eventInfo = eventInfo
     this.nativeEvent = nativeEvent
 
+    for(let propName of EventInterface) {
+        // const nativeEventProps = EventInterface[propName]
+        this[propName] = nativeEvent[propName]
+    }
+
     const defaultPrevented = nativeEvent.defaultPrevented != null 
         ? nativeEvent.defaultPrevented
-        : nativeEvent.returnValue === false 
+        : nativeEvent.returnValue === false
+
+    defaultPrevented ? this.isDefaultPrevented = () => true : this.isDefaultPrevented = () => false
+    this.isStopPropagation = () => false
+
+    return this
 }
 
 function getPool(
@@ -84,6 +106,25 @@ function getPool(
         )
     }
 }
+
+// 只实现几个代表,其他异曲同工
+Object.assign(SyntheticEvent.prototype, {
+    stopPropagation: function() {
+        const nativeEvent = this.nativeEvent
+        
+        // 兼容不同环境
+        if(nativeEvent.stopPropagation) {
+            nativeEvent.stopPropagation()
+        } else if(nativeEvent.cancelBubble !== 'unknown') {
+            nativeEvent.cancelBubble = true
+        }
+        
+        this.isStopPropagation = () => true
+    },
+    destructor: function() {
+        // 保留接口
+    }
+})
 
 SyntheticEvent.extend = function(Interface) {
     const Super = this
