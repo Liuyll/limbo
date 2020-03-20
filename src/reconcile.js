@@ -132,7 +132,7 @@ function updateHost(elementFiber) {
 
 function reconcileChildren(fiber,children) {
     const oldFibers = fiber.kids || {}
-    const newFibers = (fiber.kids = hashKids(children))
+    const newFibers = (fiber.kids = buildKeyMap(children))
 
     const reused = {}
     // 我们以oldFiber为参考,创建新的newFiber
@@ -141,6 +141,7 @@ function reconcileChildren(fiber,children) {
         const oldChild = oldFibers[child]
         const newChild = newFibers[child]
 
+        // avoid key same but different element
         if(oldChild && newChild && oldChild.type === newChild.type) {
             reused[child] = oldFibers
         } else {
@@ -228,10 +229,13 @@ function commit(fiber) {
     setRef(ref,fiber.node)
 }
 
-// 这里涉及到diff的具体实现
-// 未来会实现
-function hashKids() {
-    return {}
+
+function buildKeyMap(children) {
+    let kidsKeyMap = {}
+    for(let child of children) {
+        child.key && (kidsKeyMap[child.key] = child)
+    }
+    return kidsKeyMap
 }
 
 function executeEffectCb(effectState) {
