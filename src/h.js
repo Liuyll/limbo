@@ -1,3 +1,5 @@
+import { isPrimitive,isArray } from './tools'
+
 export function h(type,attrs,...original_children) {
     let { 
         key = null,
@@ -5,16 +7,7 @@ export function h(type,attrs,...original_children) {
         ...props
     } = attrs
 
-    const children = []
-
-    original_children.forEach((child) => {
-        if(typeof child === 'string' || typeof child === 'number') {
-            children.push(createTextNode(child))
-        } else {
-            const vnode = child
-            children.push(vnode)
-        }
-    })
+    const children = normalizeChildren(original_children)
 
     if(children.length) props.children = children.length === 1 ? children[0] : children
     return {
@@ -31,3 +24,18 @@ export function createTextNode(text) {
         value: text
     }
 }
+
+function normalizeChildren(c) {
+    if(isPrimitive(c)) return createTextNode(c)
+    else if(isArray(c)) {
+        return flattenArray(c).map(sc => {
+            return normalizeChildren(sc)
+        })
+    }
+    else return c
+}
+function flattenArray(t) {
+    return Array.prototype.concat.apply([],t)
+}
+
+

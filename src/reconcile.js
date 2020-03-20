@@ -3,7 +3,7 @@ import { createFiber,getParentElementFiber,HostFiber,setCurrentFiber,Hook } from
 import { reComputeHook } from './hooks'
 export { getCurrentFiber } from './fiber'
 import { SCU,insertElement,deleteElement,isFn,setRef } from './tools'
-import { mountElement,updateElement } from './dom'
+import { mountElement, updateElement, setTextContent } from './dom'
 
 const DELETE  = 0b00000001
 const UPDATE  = 0b00000010
@@ -156,10 +156,16 @@ function reconcileChildren(fiber,children) {
             let reUseFiber = reused[newChild]
 
             if(reUseFiber) {
-                newChild.effect = UPDATE
-
-                newChild = { ...reUseFiber,...newChild }
-                newChild.lastProps = reUseFiber.props
+                if(reUseFiber.type === 'text') {
+                    if(reUseFiber.value !== newChild.value) {
+                        setTextContent(reUseFiber,newChild.value)
+                    }
+                }
+                else {
+                    newChild.effect = UPDATE
+                    newChild = { ...reUseFiber,...newChild }
+                    newChild.lastProps = reUseFiber.props
+                }       
             } else {
                 newChild = createFiber(newChild,ADD)
             }
@@ -173,9 +179,7 @@ function reconcileChildren(fiber,children) {
             if(prevFiber) {
                 prevFiber.sibling = newChild
             } else {
-                // 这里重置了fiber.child 
-                // 丢失了children数组,而转化为fiber 链表形式
-
+                // 首个子节点为child
                 fiber.child = newChild
             }
             prevFiber = newChild
@@ -229,13 +233,30 @@ function commit(fiber) {
     setRef(ref,fiber.node)
 }
 
-
 function buildKeyMap(children) {
     let kidsKeyMap = {}
-    for(let child of children) {
-        child.key && (kidsKeyMap[child.key] = child)
-    }
+    if(children.pop) {
+        children.forEach((child,y) => {
+            if(child.pop) {
+                child.forEach((c,y1) => {
+                    kidsKeyMap[keyMapKeyFactory(2,y1,c.key)] = c
+                })
+            }
+            kidsKeyMap[keyMapKeyFactory(1,y,child.key)] = child
+        })
+    } else kidsKeyMap[keyMapKeyFactory(0,0,children.key)] = children
     return kidsKeyMap
+}
+
+// children被拍平为一个最大不过二维的数组
+// 你可以参考最长上升子序列 / 编辑距离 实现O(2)复杂度的标准diff
+// limbo没有实现考虑
+function keyMapKeyFactory(x,y,key) {
+    if(!y) return x + '.' + key
+    if(!key) {
+        if(!y) return x
+        else return x + '.' + y
+    }
 }
 
 function executeEffectCb(effectState) {

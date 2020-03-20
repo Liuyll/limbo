@@ -12,6 +12,19 @@ const Hook = function() {
 
 export let getHook = getCurrentFiberHook()
 
+export function useState(initState) {
+    const reducer = (curState,newValue) => {
+        if(typeof newValue != 'function') {
+            return newValue
+        } else {
+            let fn = newValue
+            return fn(curState)
+        }
+    }
+
+    return useReducer(reducer,initState)
+}
+
 export function useReducer(reducer,initState) {
     const [hook,fiber] = getHook()
     const effect = action => {

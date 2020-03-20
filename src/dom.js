@@ -35,6 +35,10 @@ export function updateElement(fiber,shouldExecuteEffect) {
     }    
 }
 
+export function setTextContent(fiber,value) {
+    fiber.node.innerHTML = value
+}
+
 export function mountElement(fiber) {
     if(isFn(fiber.type)) throw new Error('vnode is not Element Type')
     const dom = 

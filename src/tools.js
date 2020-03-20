@@ -47,3 +47,17 @@ export function setRef(ref,dom) {
 export function isFn(t) {
     return typeof t === 'function'
 }
+
+export function isPrimitive (value) {
+    return (
+        typeof value === 'string' ||
+      typeof value === 'number' ||
+      // $flow-disable-line
+      typeof value === 'symbol' ||
+      typeof value === 'boolean'
+    )
+}
+
+export function isArray(t) {
+    return Object.prototype.toString.call(t) === '[object Array]'
+}
