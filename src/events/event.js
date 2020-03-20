@@ -37,6 +37,7 @@ function accumulateInto(before,cur) {
 
     return before
 }
+
 function getListener(fiber,eventName) {
     let listener 
     const props = fiber.props
