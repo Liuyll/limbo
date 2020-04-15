@@ -1,6 +1,6 @@
 import { isPrimitive,isArray } from './helper/utils'
 
-export function h(type,attrs,...original_children) {
+export function h(type,attrs,...raw_children) {
     let { 
         key = null,
         ref = null,
@@ -9,7 +9,7 @@ export function h(type,attrs,...original_children) {
     } = attrs
 
     if(name) type.name = name
-    const children = normalizeChildren(original_children)
+    const children = normalizeChildren(raw_children)
 
     if(children.length) props.children = children.length === 1 ? children[0] : children
     return {
@@ -20,6 +20,14 @@ export function h(type,attrs,...original_children) {
     }
 }
 
+export function cloneElement(node,props) {
+    const newProps = Object.assign({},node.props,props)
+    return {
+        ...node,
+        props: newProps
+    }
+}
+
 export function createTextNode(text) {
     return {
         type: 'text',
@@ -27,6 +35,7 @@ export function createTextNode(text) {
     }
 }
 
+// 若使用 jsx-babel 无需下面两个函数
 function normalizeChildren(c) {
     if(isPrimitive(c)) return createTextNode(c)
     else if(isArray(c)) {

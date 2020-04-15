@@ -1,4 +1,5 @@
-import { useLayoutEffect } from '../hooks'
+import { useLayoutEffect,useContext } from '../hooks'
+import { cloneElement } from '../h'
 
 export function createContext(init) {
     const context = {
@@ -9,6 +10,10 @@ export function createContext(init) {
                 context.updateSub()
             })
             return children
+        },
+        Consumer: function({ children,selector }) {
+            const value = useContext(context,selector)
+            return cloneElement(children,{ value })
         },
         _subscribe: new Set(),
         addSub(fn) {
