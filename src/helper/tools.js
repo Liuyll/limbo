@@ -1,5 +1,5 @@
 import shallowEqual from 'shallowequal'
-import { getNearestElementFiber } from './fiber'
+import { getNearestElementFiber } from '../fiber'
 
 export function SCU(oldProps,newProps) {
     return shallowEqual(oldProps,newProps)
@@ -48,16 +48,6 @@ export function isFn(t) {
     return typeof t === 'function'
 }
 
-export function isPrimitive (value) {
-    return (
-        typeof value === 'string' ||
-      typeof value === 'number' ||
-      // $flow-disable-line
-      typeof value === 'symbol' ||
-      typeof value === 'boolean'
-    )
-}
-
-export function isArray(t) {
-    return Object.prototype.toString.call(t) === '[object Array]'
+export function getComponentName(type) {
+    return type.name
 }

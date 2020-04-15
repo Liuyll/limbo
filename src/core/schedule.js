@@ -1,4 +1,4 @@
-import heapq from './heapq'
+import heapq from '../helper/heapq'
 
 const fluency_frame_count = 60
 const frame_length = 1000 / fluency_frame_count

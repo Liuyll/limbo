@@ -1,14 +1,14 @@
 import { scheduleTask,shouldYield,planWork } from './schedule'
-import { createFiber,getParentElementFiber,HostFiber,setCurrentFiber,Hook } from './fiber'
-import { reComputeHook } from './hooks'
-export { getCurrentFiber } from './fiber'
-import { SCU,insertElement,deleteElement,isFn,setRef } from './tools'
-import { mountElement, updateElement, setTextContent } from './dom'
+import { createFiber,getParentElementFiber,HostFiber,setCurrentFiber,Hook } from '../fiber'
+import { reComputeHook } from '../hooks'
+export { getCurrentFiber } from '../fiber'
+import { SCU,insertElement,deleteElement,isFn,setRef } from '../helper/tools'
+import { mountElement, updateElement, setTextContent } from '../dom'
 
 const DELETE  = 0b00000001
 const UPDATE  = 0b00000010
 // TODO: REPLACE flag 参考react reconcileChildArray placeChild函数
-// 这里不做实现,因为不做Array diff
+// TODO: Array diff LIS优化
 const REPLACE = 0b00000100 // eslint-disable-line
 const ADD     = 0b00001000
 

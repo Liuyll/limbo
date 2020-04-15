@@ -1,4 +1,4 @@
-import { isFn } from './tools'
+import { isFn } from './helper/tools'
 import { enqueueListenTo } from './events'
 
 export function updateElement(fiber,shouldExecuteEffect) {

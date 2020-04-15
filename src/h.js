@@ -1,12 +1,14 @@
-import { isPrimitive,isArray } from './tools'
+import { isPrimitive,isArray } from './helper/utils'
 
 export function h(type,attrs,...original_children) {
     let { 
         key = null,
         ref = null,
+        name = null,
         ...props
     } = attrs
 
+    if(name) type.name = name
     const children = normalizeChildren(original_children)
 
     if(children.length) props.children = children.length === 1 ? children[0] : children
@@ -34,8 +36,10 @@ function normalizeChildren(c) {
     }
     else return c
 }
+
 function flattenArray(t) {
     return Array.prototype.concat.apply([],t)
 }
+
 
 
