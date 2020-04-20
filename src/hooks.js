@@ -1,5 +1,5 @@
 import shallowEqual from 'shallowequal'
-import { getCurrentFiber,schedule_work } from './core/reconcile'
+import { getCurrentFiber,scheduleWorkOnFiber } from './core/reconcile'
 
 const Hook = function() {
     this.state = null
@@ -33,7 +33,7 @@ export function useReducer(reducer,initState) {
         // 优先级默认为react里的Sync 即同步调用
         if(!shallowEqual(newState,hook.state)) {
             hook.state = newState
-            schedule_work(fiber)
+            scheduleWorkOnFiber(fiber)
         }
     }
     initHook(hook,(hook) => hook.state = initState)

@@ -1,18 +1,20 @@
 import { isPrimitive,isArray } from './helper/utils'
 
-export function h(type,attrs,...raw_children) {
+const __LIMBO_COMPONENT = Symbol('vnode')
+export function h(type,data,children) {
     let { 
         key = null,
         ref = null,
         name = null,
         ...props
-    } = attrs
+    } = data
 
     if(name) type.name = name
-    const children = normalizeChildren(raw_children)
+    children = normalizeChildren(children)
 
     if(children.length) props.children = children.length === 1 ? children[0] : children
     return {
+        __type: __LIMBO_COMPONENT,
         key,
         ref,
         props,

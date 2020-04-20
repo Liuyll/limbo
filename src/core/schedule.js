@@ -78,15 +78,15 @@ export function shouldYield() {
 }
 
 // MessageChannel 实现macro task
-// 具体原因参考react issue
-// 不做setTimeout回退
+// [参考](https://github.com/facebook/react/pull/14234/files)
 export const planWork = (() => {
     const { port1,port2 } = new MessageChannel()
     port1.onmessage = startOrRecoverWork
     return (cb) => cb && requestAnimationFrame(cb) || port2.postMessage(null)
 })()
 
-// heap 小顶堆
+// 小顶堆
+// 也可以用双向环表
 function cmp(task1,task2) {
     return task1.expiration - task2.expiration
 }

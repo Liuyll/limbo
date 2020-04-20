@@ -33,10 +33,10 @@ let current_execute_work_slice
 
 export function render(vnode,mountDom,cb) {
     const fiberRoot = createFiberRoot(HostFiber,mountDom,{ children: vnode },cb)
-    schedule_work(fiberRoot)
+    scheduleWorkOnFiber(fiberRoot)
 }
 
-export function schedule_work(fiber) {
+export function scheduleWorkOnFiber(fiber) {
     updateQueue.push(fiber)
     scheduleTask(reconcileWork)
 }
@@ -102,8 +102,7 @@ function updateFiber(fiber) {
     reComputeHook()
     let build = fiber.type
 
-    // 这就是willXXX出现的问题
-    // 当恢复该fiber reconcile后,又要重新那几个生命周期
+    // 当恢复该fiber reconcile后,又要重现WillXXX等三个生命周期
     let children = build(newProps)
 
     reconcileChildren(fiber,children)
@@ -249,7 +248,7 @@ function buildKeyMap(children) {
 }
 
 // children被拍平为一个最大不过二维的数组
-// 你可以参考最长上升子序列 / 编辑距离 实现O(2)复杂度的标准diff
+// 你可以参考最长上升子序列 / 编辑距离 实现O(nlogn)复杂度的标准diff
 // limbo没有实现考虑
 function keyMapKeyFactory(x,y,key) {
     if(!y) return x + '.' + key
