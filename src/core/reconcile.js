@@ -19,16 +19,13 @@ function createFiberRoot(tag,node,props,done) {
     this.done_cb = done
 }
 
-// 不采取workInProgress的双fiber tree策略
-// 而是采取更新队列策略
-// 如果你熟悉源码的话,应该知道双fiber 策略只是为了Error Boundary回滚
 let updateQueue = []
 
-// 提交队列
-// 用于commit phase
+// commit phase
 let commitQueue = []
 
 let prevCommit
+// wip
 let current_execute_work_slice
 
 export function render(vnode,mountDom,cb) {
@@ -135,7 +132,7 @@ function reconcileChildren(fiber,children) {
 
     const reused = {}
     // 我们以oldFiber为参考,创建新的newFiber
-    // 不同的mini react可能有不同的diff策略
+    // 不同的框架可能有不同的diff策略
     for(let child in oldFibers) {
         const oldChild = oldFibers[child]
         const newChild = newFibers[child]
