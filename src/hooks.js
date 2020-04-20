@@ -36,8 +36,8 @@ export function useReducer(reducer,initState) {
             scheduleWorkOnFiber(fiber)
         }
     }
-    initHook(hook,(hook) => hook.state = initState)
-    return [initState,effect]
+    let init = initHook(hook,(hook) => hook.state = initState)
+    return init ? [initState,effect] : [hook.state,effect]
 }
 
 export function useEffect(fn,deps,isLayout = false) {
