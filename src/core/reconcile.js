@@ -25,8 +25,10 @@ let updateQueue = []
 let commitQueue = []
 
 let prevCommit
+
+// cewu
 // wip
-let current_execute_work_slice
+let current_execute_work_unit
 
 export function render(vnode,mountDom,cb) {
     const fiberRoot = createFiberRoot(HostFiber,mountDom,{ children: vnode },cb)
@@ -34,29 +36,30 @@ export function render(vnode,mountDom,cb) {
 }
 
 export function scheduleWorkOnFiber(fiber) {
-    updateQueue.push(fiber)
+    // 避免重复加入更新队列
+    !fiber.dirty && updateQueue.push(fiber) && (fiber.dirty = true)
     scheduleTask(reconcileWork)
 }
 
 function reconcileWork(canExecute) {
-    if(!current_execute_work_slice) current_execute_work_slice = updateQueue.shift()
+    if(!current_execute_work_unit) current_execute_work_unit = updateQueue.shift()
 
     // fiber level task
-    while(current_execute_work_slice && (!shouldYield() || canExecute)) {
+    while(current_execute_work_unit && (!shouldYield() || canExecute)) {
         try {
             // async diff 
             // 类组件生命周期可能出现多次调用,慎用
-            reconcile(current_execute_work_slice)
+            current_execute_work_unit = reconcile(current_execute_work_unit)
         } catch {
-            // react 在这里执行了Error Boundary的逻辑
+            // TODO: Error Boundary
             break
         }
     }
     // 当前时间片用完,但任务还未执行完
     // 把任务继续加入调度,等待恢复
-    if(current_execute_work_slice && canExecute) {
+    if(current_execute_work_unit && canExecute) {
         // 等待恢复
-        return current_execute_work_slice.bind(null)
+        return current_execute_work_unit.bind(null)
     }
     // TODO: commit 
     if(prevCommit) {
@@ -67,7 +70,6 @@ function reconcileWork(canExecute) {
 }
 
 // reconcile 保证每个父节点被访问两次
-// 这是为了Context的实现
 function reconcile(currentFiber) {
     currentFiber.parentElementFiber = getParentElementFiber(currentFiber)
     currentFiber.tag == HostFiber ? updateHost(currentFiber) : updateFiber(currentFiber)
@@ -87,9 +89,7 @@ function updateFiber(fiber) {
     const oldProps = fiber.oldProps
     const newProps = fiber.props
     
-    // 这里进行SCU是防止调度过程中的props改变
-    // getDerivedStateFromProps 就是在调度过程中提供的api
-
+    // 我们内置SCU以避免hooks的无效re-render开销
     if(!fiber.dirty && !SCU(oldProps,newProps)) {
         return 
     }
@@ -97,9 +97,8 @@ function updateFiber(fiber) {
     setCurrentFiber(fiber)
     // 重计算当前fiber的hook链表
     reComputeHook()
-    let build = fiber.type
 
-    // 当恢复该fiber reconcile后,又要重现WillXXX等三个生命周期
+    let build = fiber.type
     let children = build(newProps)
 
     reconcileChildren(fiber,children)
