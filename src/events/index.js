@@ -1,10 +1,10 @@
 import { 
     getClosetFiberFromNode,
-    getTopLevelTypeFromNativeType,
-} from './index'
+} from '../fiber'
 
 import {
-    SimpleEventPlugin
+    SimpleEventPlugin,
+    getTopLevelTypeFromNativeType
 } from './plugins'
 
 import {
