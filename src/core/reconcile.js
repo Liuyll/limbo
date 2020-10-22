@@ -31,6 +31,7 @@ let prevCommit
 let current_execute_work_unit
 
 export function render(vnode,mountDom,cb) {
+    debugger;
     const fiberRoot = createFiberRoot(HostFiber,mountDom,{ children: vnode },cb)
     scheduleWorkOnFiber(fiberRoot)
 }

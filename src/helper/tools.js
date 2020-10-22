@@ -1,5 +1,5 @@
 import shallowEqual from 'shallowequal'
-import { getNearestElementFiber } from '../fiber'
+import { getNearestChildElementFiber } from '../fiber'
 
 export function SCU(oldProps,newProps) {
     return shallowEqual(oldProps,newProps)
@@ -12,7 +12,7 @@ export function deleteElement(target) {
 
 export function insertElement(target) {
     const parentElementFiber = target.parentElementNode
-    const nearestElementFiber = getNearestElementFiber(target)
+    const nearestElementFiber = getNearestChildElementFiber(target)
 
     if(target.type !== 'text') {
         // target不是文本节点,直接利用last来插入

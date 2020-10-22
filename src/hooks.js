@@ -1,5 +1,6 @@
 import shallowEqual from 'shallowequal'
-import { getCurrentFiber,scheduleWorkOnFiber } from './core/reconcile'
+import { scheduleWorkOnFiber } from './core/reconcile'
+import { getCurrentFiber } from './fiber'
 
 const Hook = function() {
     this.state = null
@@ -10,7 +11,7 @@ const Hook = function() {
     this.init = true
 }
 
-export let getHook = getCurrentFiberHook()
+export let getHook = () => getCurrentFiberHook()
 
 export function useState(initState) {
     const reducer = (curState,newValue) => {
