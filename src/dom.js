@@ -1,8 +1,8 @@
 import { isFn } from './helper/tools'
-import { enqueueListenTo } from './events'
+// import { enqueueListenTo } from './events'
 
-export function updateElement(fiber,shouldExecuteEffect) {
-    const { oldProps,props: newProps } = fiber
+export function updateElement(fiber,shouldExecuteEffect = true) {
+    const { oldProps = {},props: newProps } = fiber
     const element = fiber.node
 
     for(const prop in { ...oldProps,...newProps }) {
@@ -21,9 +21,18 @@ export function updateElement(fiber,shouldExecuteEffect) {
             } 
         } else if(prop.substring(0,2) == 'on') {
             if(shouldExecuteEffect) {
-                const registerEventName = prop.substring(2)
+                const registerEventName = prop[2].toLowerCase() + prop.substring(3)
+                if(!newProps[prop]) element.removeEventListener(registerEventName, oldProps[prop])
+                else if(!oldProps[prop]) element.addEventListener(registerEventName, newProps[prop])
+                else if(oldProps[prop] && newProps[prop]) {
+                    if(oldProps[prop] !== newProps[prop]) {
+                        element.removeEventListener(registerEventName, oldProps[prop])
+                        element.addEventListener(registerEventName, newProps[prop])
+                    }
+                }
                 // eslint-disable-next-line
-                enqueueListenTo(registerEventName,fiber,newProps[prop])
+                // if(globalThis.eventDev) enqueueListenTo(registerEventName,fiber,newProps[prop])
+                // else element.addEventListener(registerEventName,newProp)
             }
         } else if(prop === 'key') { //
         } else if(newProps[prop] === false || newProps[prop] == null) {
@@ -36,7 +45,7 @@ export function updateElement(fiber,shouldExecuteEffect) {
 }
 
 export function setTextContent(fiber,value) {
-    fiber.node.innerHTML = value
+    fiber.node.textContent = value
 }
 
 export function mountElement(fiber) {

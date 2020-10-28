@@ -1,5 +1,4 @@
 import shallowEqual from 'shallowequal'
-import { getNearestChildElementFiber } from '../fiber'
 
 export function SCU(oldProps,newProps) {
     return shallowEqual(oldProps,newProps)
@@ -11,23 +10,16 @@ export function deleteElement(target) {
 }
 
 export function insertElement(target) {
-    const parentElementFiber = target.parentElementNode
-    const nearestElementFiber = getNearestChildElementFiber(target)
+    const node = target.node
+    const parentElementFiber = target.parentElementFiber
+    const parentNode = parentElementFiber ? parentElementFiber.node : target.mountDom
 
-    if(target.type !== 'text') {
-        // target不是文本节点,直接利用last来插入
-        const insertPoint = target.insertPoint ? target.insertPoint : null
-        const lastPoint = insertPoint ? insertPoint.sibling : null
-        if(lastPoint) {
-            parentElementFiber.node.insertBefore(target.node,lastPoint ? lastPoint : parentElementFiber.firstChild)
-        }
-    }
-    
-    else {
-        const parentElementNode = parentElementFiber.node
-        const parentNearestElementNode = nearestElementFiber && nearestElementFiber.node
-        parentElementNode.insertBefore(target,parentNearestElementNode)
-    }
+    const insertPoint = target.insertPoint ? target.insertPoint : null
+    let lastPoint = insertPoint ? insertPoint.sibling : null
+    if(lastPoint) lastPoint = lastPoint.node
+    if(lastPoint === node) lastPoint = null
+
+    parentNode.insertBefore(node,lastPoint)
 }
 
 export function cleanRef(fiber) {
@@ -41,7 +33,7 @@ export function cleanRef(fiber) {
 }
 
 export function setRef(ref,dom) {
-    isFn(ref) ? ref(dom) : (ref.current = dom)
+    isFn(ref) ? ref(dom) : (ref && (ref.current = dom))
 }
 
 export function isFn(t) {

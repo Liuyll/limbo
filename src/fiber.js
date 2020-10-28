@@ -3,13 +3,13 @@ export const HostFiber = 0
 export const Hook = 1
 
 export function createFiber(vnode,op) {
-    return { ...vnode,tag: typeof vnode.type === 'function' ? Hook : HostFiber,op }
+    return { ...vnode,tag: typeof vnode.type === 'function' ? Hook : HostFiber,effect: op }
 }
 
 export function getParentElementFiber(fiber) {
     if(!fiber.parent) return null
-    
-    while(fiber.parent && fiber.parent.tag == Hook) {
+    fiber = fiber.parent
+    while(fiber && fiber.tag === Hook) {
         fiber = fiber.parent
     }
     return fiber
@@ -20,11 +20,14 @@ export function getClosetFiberFromNode(fiber) {
     return parentFiber
 }
 
-export function getNearestChildElementFiber(fiber) {
-    while(fiber.child && fiber.child.tag == Hook) {
-        fiber = fiber.child
+
+export function getNearestSiblingElementFiber(fiber) {
+    const rawFiber = fiber
+    fiber = fiber.parent && fiber.parent.child
+    while(fiber && fiber.sibling) {
+        fiber = fiber.sibling
     }
-    return fiber
+    return rawFiber === fiber ? null : fiber
 }
 
 export function getCurrentFiber() {

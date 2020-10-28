@@ -18,7 +18,7 @@ export function useState(initState) {
         if(typeof newValue != 'function') {
             return newValue
         } else {
-            let fn = newValue
+            const fn = newValue
             return fn(curState)
         }
     }
@@ -30,13 +30,12 @@ export function useReducer(reducer,initState) {
     const [hook,fiber] = getHook()
     const effect = action => {
         let newState = reducer(hook.state,action)
-        // 目前没有优先级
-        // 优先级默认为react里的Sync 即同步调用
         if(!shallowEqual(newState,hook.state)) {
             hook.state = newState
             scheduleWorkOnFiber(fiber)
         }
     }
+
     let init = initHook(hook,(hook) => hook.state = initState)
     return init ? [initState,effect] : [hook.state,effect]
 }
@@ -119,6 +118,7 @@ export function initHook(hook,cb) {
     if(hook.init) {
         setInitState(hook)
         cb(hook)
+        hook.init = false
         return true
     }
     return false

@@ -40,6 +40,7 @@ function beginWork(){
         // 标识任务是否执行完
         const isTaskSliceFinish = cb(canExecute)
         if(isTaskSliceFinish) currentTask.cb = isTaskSliceFinish
+        else heapq.pop(taskQueue)
 
         currentTask = heapq.top(taskQueue)
     }
