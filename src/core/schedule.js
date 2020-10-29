@@ -1,13 +1,14 @@
 import heapq from '../helper/heapq'
 
-const fluency_frame_count = 60
-const frame_length = 1000 / fluency_frame_count
+let FRAME_LENGTH = 30
+let NEXT_FRAME_LENGTH = FRAME_LENGTH
+let ACTIVE_FRAME_LENGTH = FRAME_LENGTH
 
 // heap
 let taskQueue = []
-let current_frame_deadline = null
-let current_task = null
-let break_schedule = false
+let currentFrameDeadline = null
+let currentTask = null
+let breakSchedule = false
 
 const getTime = () => performance.now()
 
@@ -17,27 +18,20 @@ export function scheduleTask(cb) {
     let newTask = {
         cb,
         startTime,
-        // 为后续优先级添加截止时间
-        // 注意,这里并非idle priority ,而是sync priority
-        // 无限长过期时间只是为了标识
-        expiration: startTime + timeout,
+        deadline: startTime + timeout,
     }
     heapq.push(taskQueue,newTask,cmp)
-    // 初始任务为启动轮询
-    current_task = beginWork
-    // eslint-disable-next-line
+
+    currentTask = beginWork
     planWork()
 }
 
-// re-render level task
 function beginWork(){
     let currentTask = heapq.top(taskQueue)
     while(currentTask) {
-        // 超过截止时间并且该帧可用时间已经结束
-        if(currentTask.expiration < getTime() && shouldYield()) break
+        if(currentTask.deadline < getTime() && shouldYield()) break
         let cb = currentTask.cb
-        const canExecute = currentTask.expiration >= getTime()
-        // 标识任务是否执行完
+        const canExecute = currentTask.deadline >= getTime()
         const isTaskSliceFinish = cb(canExecute)
         if(isTaskSliceFinish) currentTask.cb = isTaskSliceFinish
         else heapq.pop(taskQueue)
@@ -45,7 +39,6 @@ function beginWork(){
         currentTask = heapq.top(taskQueue)
     }
 
-    // 任务是否执行完
     return !!currentTask
 }   
 
@@ -55,39 +48,64 @@ export function ensureHighPriorityTaskToQueue(task) {
 }
 
 function cancelSchedule() {
-    break_schedule = true
+    breakSchedule = true
 }
 
-function startOrRecoverWork() {
-    current_frame_deadline = getTime() + frame_length
+function computedTime(rafTime) {
+    const previousFrameDeadline = currentFrameDeadline
+    NEXT_FRAME_LENGTH = rafTime - previousFrameDeadline + ACTIVE_FRAME_LENGTH
+    
+    if(NEXT_FRAME_LENGTH < ACTIVE_FRAME_LENGTH && FRAME_LENGTH < ACTIVE_FRAME_LENGTH) {
+        if(NEXT_FRAME_LENGTH < 8) NEXT_FRAME_LENGTH = 8
+        else ACTIVE_FRAME_LENGTH = NEXT_FRAME_LENGTH > FRAME_LENGTH ? NEXT_FRAME_LENGTH : FRAME_LENGTH
+    } 
+    FRAME_LENGTH = NEXT_FRAME_LENGTH
 
-    // 若beginWork未执行完毕,将会恢复执行
-    let isTaskNotFinish = current_task()
+    currentFrameDeadline = rafTime + ACTIVE_FRAME_LENGTH
+}
+
+let RAFId, RAFTOId
+function requestAnimationFrameWithTimeout(cb) {
+    RAFId = requestAnimationFrame((timestamp) => {
+        clearTimeout(RAFTOId)
+        cb(timestamp)
+    })
+    RAFTOId = setTimeout(() => {
+        cancelAnimationFrame(RAFId)
+        cb(getTime())
+    }, FRAME_LENGTH)
+}
+function tickWork() {
+    let isTaskNotFinish = currentTask && currentTask()
     if(isTaskNotFinish) {
-        // eslint-disable-next-line
         planWork()
-    } else (current_task = null)
+    } else (currentTask = null)
 }
 
-// 超过当前帧则延缓任务,否则继续执行
 export function shouldYield() {
-    if(break_schedule) {
-        break_schedule = false
+    if(breakSchedule) {
+        breakSchedule = false
         return true
     }
-    return getTime() > current_frame_deadline    
+    return getTime() > currentFrameDeadline    
 }
 
-// MessageChannel 实现macro task
-// [参考](https://github.com/facebook/react/pull/14234/files)
 export const planWork = (() => {
     const { port1,port2 } = new MessageChannel()
-    port1.onmessage = startOrRecoverWork
-    return (cb) => cb && requestAnimationFrame(cb) || port2.postMessage(null)
+    port1.onmessage = tickWork
+    return (cb) => {
+        const work = (timestamp) => {
+            computedTime(timestamp)
+
+            // cb只处理hooks，不执行调度
+            if(cb) cb(timestamp)
+            else port2.postMessage(null) 
+        }
+        requestAnimationFrameWithTimeout(work)
+    }
 })()
 
 // 小顶堆
-// 也可以用双向环表
 function cmp(task1,task2) {
-    return task1.expiration - task2.expiration
+    return task1.deadline - task2.deadline
 }
