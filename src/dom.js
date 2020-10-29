@@ -30,13 +30,14 @@ export function updateElement(fiber,shouldExecuteEffect = true) {
                         element.addEventListener(registerEventName, newProps[prop])
                     }
                 }
-                // eslint-disable-next-line
                 // if(globalThis.eventDev) enqueueListenTo(registerEventName,fiber,newProps[prop])
                 // else element.addEventListener(registerEventName,newProp)
             }
         } else if(prop === 'key') { //
         } else if(newProps[prop] === false || newProps[prop] == null) {
             element.removeAttribute(prop)
+        } else if(prop === 'ref') { 
+            if(typeof newProps[prop] === 'function') newProps[prop](element)
         } else {
             element.setAttribute(prop,newProps[prop])
         } 
@@ -55,7 +56,6 @@ export function mountElement(fiber) {
                 ? document.createTextNode(fiber.value)
                 : document.createElement(fiber.type)
     
-    // 反向引用
     fiber.node = dom
     dom._limbo__fiber = fiber
     updateElement(fiber,true)

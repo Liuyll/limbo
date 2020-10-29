@@ -41,13 +41,15 @@ export function useReducer(reducer,initState) {
 }
 
 export function useEffect(fn,deps,isLayout = false) {
-    const [hook,fiber] = getHook()
-    const oldDeps = hook.deps
-    if(!shallowEqual(oldDeps,deps)) {
-        hook.deps = deps
-        hook.cb = fn
-        fiber.hooks[isLayout ? 'layout' : 'effect'].push(fn)
-    }
+    useMemo(() => {
+        const [hook,fiber] = getHook()
+        const oldDeps = hook.deps
+        if(!shallowEqual(oldDeps,deps)) {
+            hook.deps = deps
+            hook.cb = fn
+            fiber.hooks[isLayout ? 'layout' : 'effect'].push({ effect: fn })
+        }
+    },[])
 }
 
 export function useAction(fn,deps) {

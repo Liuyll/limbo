@@ -213,12 +213,10 @@ function commit(fiber) {
     } else if(fiber.tag === Hook) {
         if(hooks) {
             hooks.layout.forEach(clearPrevEffect)
-            hooks.layout.forEach(executeEffectCb)
-            hooks.layout = []
+            hooks.layout.forEach(callEffect)
             planWork(() => {
                 hooks.effect.forEach(clearPrevEffect)
-                hooks.effect.forEach(executeEffectCb)
-                hooks.effect = []
+                hooks.effect.forEach(callEffect)
             })
         } 
     } else if(effect === UPDATE) {
@@ -262,14 +260,14 @@ function keyMapKeyFactory(x,y,key) {
     } else return x + '.' + y + '.' + key
 }
 
-function executeEffectCb(effectState) {
-    const effect = effectState.effect
+function callEffect(state) {
+    const effect = state.effect
     const clear = effect()
     // 清理函数
-    if(isFn(clear)) effectState.clear = clear
+    if(isFn(clear)) state.clear = clear
 }
 
-function clearPrevEffect(effectState) {
-    const { clear } = effectState
+function clearPrevEffect(state) {
+    const { clear } = state
     clear && clear()
 }
