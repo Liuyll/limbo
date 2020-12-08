@@ -1,4 +1,4 @@
-let heapq = exports
+let heapq = {}
 
 let cmplt = function(x, y) {
     return x < y
@@ -102,3 +102,5 @@ function siftup(heap, idx, cmp) {
     heap[idx] = item
     siftdown(heap, startIdx, idx, cmp)
 }
+
+export default heapq
