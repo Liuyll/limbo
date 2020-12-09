@@ -34,3 +34,5 @@ rules:
   react/display-name: 0
   space-infix-ops:
     - warn
+  no-empty:
+    - 0

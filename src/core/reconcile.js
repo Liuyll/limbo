@@ -29,7 +29,7 @@ function createFiberRoot(vnode,mountDom,done) {
 let updateQueue = []
 let commitQueue = []
 let prevCommit
-let current_execute_work_unit
+let currentExecuteWorkUnit
 
 export function render(vnode,mountDom,cb) {
     const fiberRoot = createFiberRoot(vnode,mountDom,cb)
@@ -43,14 +43,12 @@ export function scheduleWorkOnFiber(fiber) {
 }
 
 function reconcileWork(dopast) {
-    if(!current_execute_work_unit) current_execute_work_unit = updateQueue.shift()
+    if(!currentExecuteWorkUnit) currentExecuteWorkUnit = updateQueue.shift()
 
     // fiber level task
-    while(current_execute_work_unit && (!shouldYield() || dopast)) {
+    while(currentExecuteWorkUnit && (!shouldYield() || dopast)) {
         try {
-            // async diff 
-            // 类组件生命周期可能出现多次调用,慎用
-            current_execute_work_unit = reconcile(current_execute_work_unit)
+            currentExecuteWorkUnit = reconcile(currentExecuteWorkUnit)
         } catch(err) {
             // TODO: Error Boundary
             // eslint-disable-next-line
@@ -61,7 +59,7 @@ function reconcileWork(dopast) {
 
     // 当前时间片用完,但任务还未执行完
     // 把任务继续加入调度,等待恢复
-    if(current_execute_work_unit && !dopast) {
+    if(currentExecuteWorkUnit && !dopast) {
         // 等待恢复
         return reconcileWork.bind(null)
     }
@@ -89,7 +87,14 @@ function reconcile(currentFiber) {
     }
 }
 
+function reconcileText(newFiber,oldFiber) {
+    if(newFiber.type !== 'text' || oldFiber.type !== 'text') throw Error('reconcileText must be text type.')
+    if(newFiber.value !== oldFiber.Value) setTextContent(oldFiber, newFiber.value)
+    newFiber.effect = NOWORK
+}
+
 function reconcileChildren(fiber,children) {
+    // if(fiber.type === 'text') return reconcileText(fiber)
     if(!children) return
     const oldFibers = fiber.kids || {}
     const newFibers = (fiber.kids = buildKeyMap(children))
@@ -103,7 +108,7 @@ function reconcileChildren(fiber,children) {
         if(oldChild && newChild && oldChild.type === newChild.type) {
             reused[child] = oldChild
         } else {
-            oldFibers.effect = DELETE
+            oldChild.effect = DELETE
             commitQueue.push(oldChild)
         }  
     }
@@ -116,17 +121,12 @@ function reconcileChildren(fiber,children) {
         if(reUseFiber) {
             if(!sameVnode(reUseFiber,newChild)) {
                 newChild.effect = REPLACE
+                newChild.replaced = reUseFiber
             } else {
                 newChild.effect = UPDATE
                 newChild = { ...reUseFiber,...newChild }
                 newChild.oldProps = reUseFiber.props 
-                if(reUseFiber.type === 'text') {
-                    if(reUseFiber.value !== newChild.value) {
-                        if(newChild.value == null) newChild.value = ''
-                        setTextContent(reUseFiber,newChild.value)
-                    }
-                    newChild.effect = NOWORK
-                }
+                if(reUseFiber.type === 'text' && newChild.type === 'text') reconcileText(newChild, reUseFiber)
             }
         } else {
             newChild = createFiber(newChild,ADD)
@@ -153,40 +153,32 @@ function reconcileChildren(fiber,children) {
 function updateFiber(fiber) {
     const oldProps = fiber.oldProps
     const newProps = fiber.props
-    
-    // 我们内置SCU以避免hooks的无效re-render开销
+
     if(!fiber.dirty && SCU(oldProps,newProps)) {
         return 
     }
 
     setCurrentFiber(fiber)
-    // 重计算当前fiber的hook链表
     reComputeHook()
 
     const build = fiber.type
     const children = build(newProps)
-    if(children.type === 'text') {
-        //
-    }
 
     reconcileChildren(fiber,children)
 }
 
-// 更新真实的Dom节点
-// HostFiber 绝对不可能有vnode fiber作为子节点
-// 所以这里无需加速更新
 function updateHost(elementFiber) {
     if(!elementFiber.node) {
         mountElement(elementFiber)
     }
 
     // 插入位置是第一个dom父节点的最后
-    // 也就是insertBefore
     let parentElementFiber = elementFiber.parentElementFiber || {}
     elementFiber.insertPoint = parentElementFiber.last || null
     parentElementFiber.last = elementFiber
     elementFiber.node.last = null 
 
+    // debugger
     reconcileChildren(elementFiber,elementFiber.props.children)
 }
 
@@ -204,10 +196,9 @@ function flushCommitQueue(fiberRoot) {
 }
 
 function commit(fiber) {
-    const { effect,hooks,ref } = fiber
+    const { effect,hooks,ref,replaced } = fiber
 
     if(effect === NOWORK) {
-        //
     } else if(effect === DELETE) {
         deleteElement(fiber)
     } else if(fiber.tag === Hook) {
@@ -220,12 +211,12 @@ function commit(fiber) {
             })
         } 
     } else if(effect === UPDATE) {
-        // debugger
-        updateElement(fiber,true)
+        updateElement(fiber, true)
     } else if(effect === ADD) {
         insertElement(fiber)
     } else if(effect === REPLACE) {
-        //
+        deleteElement(fiber)
+        insertElement(replaced)
     }
 
     // update
@@ -242,12 +233,14 @@ function buildKeyMap(children) {
     let kidsKeyMap = {}
     if(Array.isArray(children)) {
         children.forEach((child,y) => {
-            if(Array.isArray(child)) {
-                child.forEach((c,y1) => {
-                    kidsKeyMap[keyMapKeyFactory(2,y1,c.key)] = c
-                })
+            if(child) {
+                if(Array.isArray(child)) {
+                    child.forEach((c,y1) => {
+                        kidsKeyMap[keyMapKeyFactory(2,y1,c.key)] = c
+                    })
+                }
+                kidsKeyMap[keyMapKeyFactory(1,y,child.key)] = child
             }
-            kidsKeyMap[keyMapKeyFactory(1,y,child.key)] = child
         })
     } else kidsKeyMap[keyMapKeyFactory(0,0,children.key)] = children
     return kidsKeyMap

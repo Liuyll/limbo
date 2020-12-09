@@ -15,6 +15,7 @@ export function h(type,data,...children) {
 
     if(name) type.name = name
     children = normalizeChildren(children)
+    // debugger
 
     if(children.length) props.children = children.length === 1 ? children[0] : children
     if(children.type === 'text') props.children = children
@@ -53,7 +54,7 @@ function normalizeChildren(c) {
             return normalizeChildren(sc)
         })
     }
-    else return c || []
+    else return c
 }
 
 function flattenArray(t) {
