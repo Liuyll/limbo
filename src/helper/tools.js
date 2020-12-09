@@ -22,6 +22,15 @@ export function insertElement(target) {
     parentNode.insertBefore(node,lastPoint)
 }
 
+export function replaceElement(target) {
+    const node = target.node
+    const parentElementFiber = target.parentElementFiber
+    const parentNode = parentElementFiber ? parentElementFiber.node : target.mountDom
+
+    const curIndex = target.childIndex
+    parentNode.insertBefore(node, parentNode.childNodes[curIndex + 1])
+}
+
 export function cleanRef(fiber) {
     if(!fiber) return
     

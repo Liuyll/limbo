@@ -2,12 +2,11 @@ import { scheduleTask,shouldYield,planWork } from './schedule'
 import { createFiber,getParentElementFiber,HostFiber,setCurrentFiber,Hook } from '../fiber'
 import { reComputeHook } from '../hooks'
 export { getCurrentFiber } from '../fiber'
-import { SCU,insertElement,deleteElement,isFn,setRef } from '../helper/tools'
+import { SCU,insertElement,deleteElement,isFn,setRef, replaceElement } from '../helper/tools'
 import { mountElement, updateElement, setTextContent } from '../dom'
 
 const DELETE  = 0b00000001
 const UPDATE  = 0b00000010
-// TODO: REPLACE flag 参考react reconcileChildArray placeChild函数
 // TODO: Array diff LIS优化
 const REPLACE = 0b00000100 // eslint-disable-line
 const ADD     = 0b00001000
@@ -73,6 +72,7 @@ function reconcileWork(dopast) {
 
 function reconcile(currentFiber) {
     currentFiber.parentElementFiber = getParentElementFiber(currentFiber)
+    // debugger
     currentFiber.tag == HostFiber ? updateHost(currentFiber) : updateFiber(currentFiber)
     commitQueue.push(currentFiber)
     if(currentFiber.child) return currentFiber.child
@@ -94,7 +94,6 @@ function reconcileText(newFiber,oldFiber) {
 }
 
 function reconcileChildren(fiber,children) {
-    // if(fiber.type === 'text') return reconcileText(fiber)
     if(!children) return
     const oldFibers = fiber.kids || {}
     const newFibers = (fiber.kids = buildKeyMap(children))
@@ -103,9 +102,9 @@ function reconcileChildren(fiber,children) {
     for(let child in oldFibers) {
         const oldChild = oldFibers[child]
         const newChild = newFibers[child]
-
+        
         // avoid key same but different element
-        if(oldChild && newChild && oldChild.type === newChild.type) {
+        if(oldChild && newChild && sameVnode(oldChild, newChild)) {
             reused[child] = oldChild
         } else {
             oldChild.effect = DELETE
@@ -118,16 +117,20 @@ function reconcileChildren(fiber,children) {
         let newChild = newFibers[child]
         let reUseFiber = reused[child]
 
-        if(reUseFiber) {
-            if(!sameVnode(reUseFiber,newChild)) {
+        if(reUseFiber && sameVnode(newChild, reUseFiber)) {
+            // if(fiber.__test) {
+            //     debugger
+            // }
+            const newIndex = newChild.childIndex, oldIndex = reUseFiber.childIndex
+            newChild.effect = UPDATE
+            newChild = { ...reUseFiber,...newChild }
+            newChild.oldProps = reUseFiber.props 
+            if(newIndex !== oldIndex) {
                 newChild.effect = REPLACE
                 newChild.replaced = reUseFiber
-            } else {
-                newChild.effect = UPDATE
-                newChild = { ...reUseFiber,...newChild }
-                newChild.oldProps = reUseFiber.props 
-                if(reUseFiber.type === 'text' && newChild.type === 'text') reconcileText(newChild, reUseFiber)
+                // commitQueue.push(newChild)
             }
+            if(reUseFiber.type === 'text' && newChild.type === 'text') reconcileText(newChild, reUseFiber)
         } else {
             newChild = createFiber(newChild,ADD)
         }
@@ -145,7 +148,7 @@ function reconcileChildren(fiber,children) {
     }
     if(prevFiber) prevFiber.sibling = null
 
-    // 只有fiberRoot有bool值，其他为null
+    fiber.kids = newFibers
     fiber.dirty = fiber.dirty ? false : null
 }
 
@@ -160,7 +163,6 @@ function updateFiber(fiber) {
 
     setCurrentFiber(fiber)
     reComputeHook()
-
     const build = fiber.type
     const children = build(newProps)
 
@@ -196,7 +198,7 @@ function flushCommitQueue(fiberRoot) {
 }
 
 function commit(fiber) {
-    const { effect,hooks,ref,replaced } = fiber
+    const { effect,hooks,ref } = fiber
 
     if(effect === NOWORK) {
     } else if(effect === DELETE) {
@@ -215,11 +217,10 @@ function commit(fiber) {
     } else if(effect === ADD) {
         insertElement(fiber)
     } else if(effect === REPLACE) {
-        deleteElement(fiber)
-        insertElement(replaced)
+        replaceElement(fiber)
     }
 
-    // update
+    // update ref
     setRef(ref,fiber.node)
 }
 
@@ -237,9 +238,11 @@ function buildKeyMap(children) {
                 if(Array.isArray(child)) {
                     child.forEach((c,y1) => {
                         kidsKeyMap[keyMapKeyFactory(2,y1,c.key)] = c
+                        c.childIndex = y1
                     })
                 }
                 kidsKeyMap[keyMapKeyFactory(1,y,child.key)] = child
+                child.childIndex = y
             }
         })
     } else kidsKeyMap[keyMapKeyFactory(0,0,children.key)] = children
@@ -247,10 +250,10 @@ function buildKeyMap(children) {
 }
 
 function keyMapKeyFactory(x,y,key) {
-    if(y == null) throw('Error: not order y')
-    else if(key == null) {
+    if(y == undefined) throw('Error: not order y')
+    else if(key == undefined) {
         return x + '.' + y
-    } else return x + '.' + y + '.' + key
+    } else return x + '..' + key
 }
 
 function callEffect(state) {

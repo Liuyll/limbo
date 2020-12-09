@@ -10,6 +10,7 @@ export function h(type,data,...children) {
         key = null,
         ref = null,
         name = null,
+        __test = null,
         ...props
     } = data
 
@@ -25,7 +26,8 @@ export function h(type,data,...children) {
         key,
         ref,
         props,
-        type
+        type,
+        __test
     }
 }
 
