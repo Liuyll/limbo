@@ -8,9 +8,9 @@ import { mountElement, updateElement, setTextContent } from '../dom'
 const DELETE  = 0b00000001
 const UPDATE  = 0b00000010
 // TODO: Array diff LIS优化
-const REPLACE = 0b00000100 // eslint-disable-line
+const REPLACE = 0b00000100
 const ADD     = 0b00001000
-const NOWORK  = 0b00010000 // eslint-disable-line
+const NOWORK  = 0b00010000
 
 function createFiberRoot(vnode,mountDom,done) {
     // return new FiberRoot(node,props,done)
@@ -43,7 +43,6 @@ export function scheduleWorkOnFiber(fiber) {
 
 function reconcileWork(dopast) {
     if(!currentExecuteWorkUnit) currentExecuteWorkUnit = updateQueue.shift()
-
     // fiber level task
     while(currentExecuteWorkUnit && (!shouldYield() || dopast)) {
         try {
@@ -56,10 +55,8 @@ function reconcileWork(dopast) {
         }
     }
 
-    // 当前时间片用完,但任务还未执行完
-    // 把任务继续加入调度,等待恢复
+    // time finish but task isn't finish
     if(currentExecuteWorkUnit && !dopast) {
-        // 等待恢复
         return reconcileWork.bind(null)
     }
     // TODO: commit 
@@ -72,8 +69,12 @@ function reconcileWork(dopast) {
 
 function reconcile(currentFiber) {
     currentFiber.parentElementFiber = getParentElementFiber(currentFiber)
-    // debugger
     currentFiber.tag == HostFiber ? updateHost(currentFiber) : updateFiber(currentFiber)
+    /*
+        提交策略
+        当前fiber为子节点添加effect
+        当子节点进入reconcile时提交由父节点赋予的effect
+     */
     commitQueue.push(currentFiber)
     if(currentFiber.child) return currentFiber.child
     
@@ -118,9 +119,6 @@ function reconcileChildren(fiber,children) {
         let reUseFiber = reused[child]
 
         if(reUseFiber && sameVnode(newChild, reUseFiber)) {
-            // if(fiber.__test) {
-            //     debugger
-            // }
             const newIndex = newChild.childIndex, oldIndex = reUseFiber.childIndex
             newChild.effect = UPDATE
             newChild = { ...reUseFiber,...newChild }
@@ -128,7 +126,6 @@ function reconcileChildren(fiber,children) {
             if(newIndex !== oldIndex) {
                 newChild.effect = REPLACE
                 newChild.replaced = reUseFiber
-                // commitQueue.push(newChild)
             }
             if(reUseFiber.type === 'text' && newChild.type === 'text') reconcileText(newChild, reUseFiber)
         } else {
