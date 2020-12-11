@@ -22,11 +22,11 @@ export function scheduleTask(cb) {
     }
     heapq.push(taskQueue,newTask,cmp)
 
-    currentTask = beginWork
+    currentTask = schedule
     planWork()
 }
 
-function beginWork(){
+function schedule(){
     let currentTask = heapq.top(taskQueue)
     while(currentTask) {
         if(currentTask.deadline < getTime() && shouldYield()) break

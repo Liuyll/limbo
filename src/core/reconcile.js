@@ -38,10 +38,10 @@ export function render(vnode,mountDom,cb) {
 export function scheduleWorkOnFiber(fiber) {
     // 避免重复加入更新队列
     !fiber.dirty && updateQueue.push(fiber) && (fiber.dirty = true)
-    scheduleTask(reconcileWork)
+    scheduleTask(runWorkLoop)
 }
 
-function reconcileWork(dopast) {
+function runWorkLoop(dopast) {
     if(!currentExecuteWorkUnit) currentExecuteWorkUnit = updateQueue.shift()
     // fiber level task
     while(currentExecuteWorkUnit && (!shouldYield() || dopast)) {
@@ -57,7 +57,7 @@ function reconcileWork(dopast) {
 
     // time finish but task isn't finish
     if(currentExecuteWorkUnit && !dopast) {
-        return reconcileWork.bind(null)
+        return runWorkLoop.bind(null)
     }
     // TODO: commit 
     if(prevCommit) {
@@ -69,6 +69,14 @@ function reconcileWork(dopast) {
 
 function reconcile(currentFiber) {
     currentFiber.parentElementFiber = getParentElementFiber(currentFiber)
+    let next = beginWork(currentFiber)
+    if(!next) {
+        next = completeUnitWork(currentFiber)
+    }
+    return next
+}
+
+function beginWork(currentFiber) {
     currentFiber.tag == HostFiber ? updateHost(currentFiber) : updateFiber(currentFiber)
     /*
         提交策略
@@ -77,7 +85,10 @@ function reconcile(currentFiber) {
      */
     commitQueue.push(currentFiber)
     if(currentFiber.child) return currentFiber.child
-    
+    return null
+}
+
+function completeUnitWork(currentFiber) {
     while(currentFiber) {
         if(currentFiber.dirty === false && !prevCommit) {
             prevCommit = currentFiber
