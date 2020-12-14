@@ -11,11 +11,13 @@ let currentTask = null
 let breakSchedule = false
 
 const getTime = () => performance.now()
+export const SYNC       = 0x0000000001
+export const ANY        = 0x0000000010
 
-export function scheduleTask(cb) {
-    let startTime = getTime()
-    let timeout = 1000 * 60 * 24
-    let newTask = {
+export function scheduleTask(cb, priority) {
+    const startTime = getTime()
+    const timeout = computedTimeout(priority)
+    const newTask = {
         cb,
         startTime,
         deadline: startTime + timeout,
@@ -29,14 +31,15 @@ export function scheduleTask(cb) {
 function schedule(){
     let currentTask = heapq.top(taskQueue)
     while(currentTask) {
-        if(currentTask.deadline < getTime() && shouldYield()) break
+        if(currentTask.deadline > getTime() && shouldYield()) break
         let cb = currentTask.cb
-        const canExecute = currentTask.deadline >= getTime()
-        const isTaskSliceFinish = cb(canExecute)
-        if(isTaskSliceFinish) currentTask.cb = isTaskSliceFinish
-        else heapq.pop(taskQueue)
-
-        currentTask = heapq.top(taskQueue)
+        const doImmediately = currentTask.deadline >= getTime()
+        const nextTask = cb(doImmediately)
+        if(nextTask) currentTask.cb = nextTask
+        else {
+            heapq.pop(taskQueue)
+            currentTask = heapq.top(taskQueue)
+        }
     }
 
     return !!currentTask
@@ -80,6 +83,16 @@ function tickWork() {
     if(isTaskNotFinish) {
         planWork()
     } else (currentTask = null)
+}
+
+function computedTimeout(priority) {
+    switch(priority) {
+        case SYNC:
+            return 0
+        case ANY:
+        default:
+            return 1000 * 60 * 24
+    }
 }
 
 export function shouldYield() {
