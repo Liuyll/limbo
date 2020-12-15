@@ -1,5 +1,7 @@
 import { h } from './h'
 import { render } from './core/reconcile'
+import { Suspense } from './component/suspense.jsx'
+
 import {
     useState,
     useEffect,
@@ -37,6 +39,10 @@ export {
     useLayoutEffect,
     useContext,
     useReducer
+}
+
+export {
+    Suspense
 }
 
 export default limbo

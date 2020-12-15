@@ -1,0 +1,1 @@
+export const __LIMBO_SUSPENSE = Symbol('suspense')

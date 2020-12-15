@@ -38,4 +38,8 @@ export function setCurrentFiber(fiber) {
     current_fiber = fiber
 }
 
-
+export function cloneFiber(fiber, effect) {
+    const newFiber = {}
+    newFiber.effect = effect
+    newFiber.dirty = fiber.dirty
+}

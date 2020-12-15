@@ -36,3 +36,8 @@ rules:
     - warn
   no-empty:
     - 0
+  no-useless-catch:
+    - 0
+  no-unused-vars:
+    - error
+    - argsIgnorePattern: "_"

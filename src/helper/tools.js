@@ -1,7 +1,7 @@
 import shallowEqual from 'shallowequal'
 
 export function SCU(oldProps,newProps) {
-    return shallowEqual(oldProps,newProps)
+    return !shallowEqual(oldProps,newProps)
 }
 
 export function deleteElement(target) {
