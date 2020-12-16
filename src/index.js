@@ -1,6 +1,8 @@
 import { h } from './h'
 import { render } from './core/reconcile'
 import { Suspense } from './component/suspense.jsx'
+import { createContext } from './component/context'
+import KeepAlive from './component/keep-alive'
 
 import {
     useState,
@@ -42,7 +44,9 @@ export {
 }
 
 export {
-    Suspense
+    Suspense,
+    KeepAlive,
+    createContext
 }
 
 export default limbo

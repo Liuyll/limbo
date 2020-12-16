@@ -29,8 +29,6 @@ function createFiberRoot(vnode,mountDom,done) {
 }
 
 const additionalRenderTasks = []
-// const needRecoverSuspensesFiber = new Map()
-// TODO: deprecate
 const needRecoverSuspenseMap = new Map()
 const suspenseMap = new Map()
 const updateQueue = []
@@ -130,7 +128,6 @@ function beginWork(currentFiber, additionalCommitQueue) {
             if(!suspense.fallback) throw Error('Suspense must get fallback prop!')
 
             currentFiber.uncompleted = true
-            // needRecoverSuspensesFiber.set(suspense.__suspenseFlag, { kids: suspense.kids, child: suspense.child, children: suspense.props.children })
             const { fallback } = suspense
             if(!needRecoverSuspenseMap.get(suspense.__suspenseFlag)) needRecoverSuspenseMap.set(suspense.__suspenseFlag, suspenseMap.get(suspense.__suspenseFlag))
             
@@ -147,25 +144,27 @@ function beginWork(currentFiber, additionalCommitQueue) {
             })
     
             const handleSuspenseResolve = () => {
-                const container = suspense.child
-                const fallback = container.child
-                fallback.effect = DELETE
-                commitQueue.push(fallback)
-                container.kids = containerKids
-                container.child = containerChild
-                // flushCommitQueue(suspense)
-                // needRecoverSuspenseMap.get(suspense.__suspenseFlag).forEach(fiber => {
-                //     fiber.uncompleted = false
-                //     if(fiber.effect === SUSPENSE) {
-                //         fiber.effect = fiber.uncommited_effect
-                //         delete fiber.uncommited_effect
-                //         commitQueue.push(fiber)
-                //     }
-                // })
-                needRecoverSuspenseMap.delete(suspense.__suspenseFlag)
-                // flushCommitQueue(suspense)
-                suspense.props.children = suspenseChildren
-                scheduleWorkOnFiber(suspense)
+                if(needRecoverSuspenseMap.get(suspense.__suspenseFlag).filter(fiber => fiber.effect !== SUSPENSE).length === 1) {
+                    const container = suspense.child
+                    const fallback = container.child
+                    fallback.effect = DELETE
+                    commitQueue.push(fallback)
+                    container.kids = containerKids
+                    container.child = containerChild
+                    needRecoverSuspenseMap.delete(suspense.__suspenseFlag)
+                    suspense.props.children = suspenseChildren
+                    scheduleWorkOnFiber(suspense)
+                } else {
+                    currentFiber.end = () => {
+                        const currentReconcileCommits = suspenseMap.get(suspense.__suspenseFlag).slice(1)
+                        const currentSuspenseCommits = needRecoverSuspenseMap.get(suspense.__suspenseFlag)
+                        const insert = currentSuspenseCommits.findIndex(fiber => fiber === currentFiber)
+                        currentSuspenseCommits[insert].uncompleted = false
+                        currentSuspenseCommits.splice(insert + 1, 0, ...currentReconcileCommits)
+                        delete currentFiber.end
+                    }
+                    scheduleWorkOnFiber(currentFiber)
+                }
             }
 
             err.then(
@@ -331,16 +330,17 @@ function reconcileChildren(fiber,children) {
     fiber.dirty = fiber.dirty ? false : null
 }
 
+function frozenSuspenseFiber(fiber) {
+    fiber.uncompleted = true
+    fiber.uncommited_effect = fiber.effect
+    fiber.effect = SUSPENSE
+}
+
 // phase2 commit 
 function flushCommitQueue(root) {
+    root.end && root.end()
     needRecoverSuspenseMap.forEach(suspenseChildQueue => {
-        suspenseChildQueue.forEach(fiber => {
-            if(!fiber.uncompleted) {
-                fiber.uncompleted = true
-                fiber.uncommited_effect = fiber.effect
-                fiber.effect = SUSPENSE
-            }
-        })
+        suspenseChildQueue.filter(fiber => !fiber.uncompleted).forEach(fiber => frozenSuspenseFiber(fiber))
     })
     commitQueue.forEach((work) => commit(work))
     root.done && root.done()
