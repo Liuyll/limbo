@@ -127,6 +127,7 @@ function beginWork(currentFiber, additionalCommitQueue) {
             if(!suspense) throw Error('maybe need Suspense Wrap Component!')
             if(!suspense.fallback) throw Error('Suspense must get fallback prop!')
 
+            currentFiber.future = err
             currentFiber.uncompleted = true
             const { fallback } = suspense
             if(!needRecoverSuspenseMap.get(suspense.__suspenseFlag)) needRecoverSuspenseMap.set(suspense.__suspenseFlag, suspenseMap.get(suspense.__suspenseFlag))
@@ -144,16 +145,24 @@ function beginWork(currentFiber, additionalCommitQueue) {
             })
     
             const handleSuspenseResolve = () => {
-                if(needRecoverSuspenseMap.get(suspense.__suspenseFlag).filter(fiber => fiber.effect !== SUSPENSE).length === 1) {
+                const getCurrentPromisePendingFibers = (future) => needRecoverSuspenseMap.get(suspense.__suspenseFlag).filter(fiber => fiber.effect !== SUSPENSE && fiber.future === future)
+                const getPromisePendingFibersCount = () => new Set(needRecoverSuspenseMap.get(suspense.__suspenseFlag).filter(fiber => fiber.effect !== SUSPENSE).map(f => f.future)).size
+
+                if(err.__limbo_handing) return
+                else err.__limbo_handing = true
+                setTimeout(() => err.__limbo_handing = false)
+                if(getPromisePendingFibersCount() === 1) {
                     const container = suspense.child
                     const fallback = container.child
                     fallback.effect = DELETE
                     commitQueue.push(fallback)
                     container.kids = containerKids
                     container.child = containerChild
+                    getCurrentPromisePendingFibers(err).forEach(f => delete f.future)
                     needRecoverSuspenseMap.delete(suspense.__suspenseFlag)
                     suspense.props.children = suspenseChildren
                     scheduleWorkOnFiber(suspense)
+                    
                 } else {
                     currentFiber.end = () => {
                         const currentReconcileCommits = suspenseMap.get(suspense.__suspenseFlag).slice(1)
@@ -162,6 +171,7 @@ function beginWork(currentFiber, additionalCommitQueue) {
                         currentSuspenseCommits[insert].uncompleted = false
                         currentSuspenseCommits.splice(insert + 1, 0, ...currentReconcileCommits)
                         delete currentFiber.end
+                        getCurrentPromisePendingFibers(err).forEach(f => delete f.future)
                     }
                     scheduleWorkOnFiber(currentFiber)
                 }
