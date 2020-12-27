@@ -288,7 +288,6 @@ function reconcileChildren(fiber,children) {
     for(let child in oldFibers) {
         const oldChild = oldFibers[child]
         const newChild = newFibers[child]
-        
         // avoid key same but different element
         if(oldChild && newChild && sameVnode(oldChild, newChild)) {
             reused[child] = oldChild
@@ -298,6 +297,7 @@ function reconcileChildren(fiber,children) {
         }  
     }
 
+    markStableElements(Object.values(reused))
     let prevFiber = null
     for(let child in newFibers) {
         let newChild = newFibers[child]
@@ -314,8 +314,12 @@ function reconcileChildren(fiber,children) {
             newChild = { ...reUseFiber,...newChild }
             newChild.oldProps = reUseFiber.props 
             if(newIndex !== oldIndex) {
-                newChild.effect = REPLACE
-                newChild.replaced = reUseFiber
+                if(reUseFiber.__stable) {
+                    delete reUseFiber.__stable
+                } else {
+                    newChild.effect = REPLACE
+                    newChild.replaced = reUseFiber
+                }
             }
             if(reUseFiber.type === 'text' && newChild.type === 'text') reconcileText(newChild, reUseFiber)
         } else {
@@ -437,6 +441,37 @@ function buildKeyMap(children) {
         })
     } else kidsKeyMap[keyMapKeyFactory(0,0,children.key)] = children
     return kidsKeyMap
+}
+
+function markStableElements(target) {
+    const _target = target.filter(f => f.childIndex).map(f => f.childIndex)
+    const stable = []
+    if(_target.length) stable[0] = _target[0]
+    for(let i = 0;i < _target.length; i++) {
+        if(_target[i] > stable[stable.length - 1]) {
+            stable[stable.length] = _target[i]
+        } else {
+            const replace = binaryQuery(stable, _target[i])
+            if(_target[i] > stable[replace]) continue
+            else if(stable[replace] === _target[i]) continue
+            else if(replace === 0) stable[0] = _target[i]
+            else stable[replace] = _target[i]
+        }
+    }
+    stable.forEach(i => {
+        target[i].__stable = true
+    })
+}
+
+function binaryQuery(target, point) {
+    let left = 0,
+        right = target.length - 1
+    while(left < right) {
+        const mid = left + ((right - left) >> 1)
+        if(target[mid] < point) left = mid + 1
+        else if(target[mid] >= point) right = mid 
+    }
+    return left
 }
 
 function keyMapKeyFactory(x,y,key) {

@@ -10,21 +10,19 @@ a mini-react force on / concurrent mode / event-system / fiber
 
 [preact](https://github.com/preactjs/preact)
 
-## 为什么写limbo？
+## advance
++ `schedule`
++ `高性能渲染`
++ `suspense`
++ `简单且体积小`
 
-一言以蔽之，晦涩难懂的`react`源码不适合直接学习，并且调度一直在变化。
+### limbo lis diff
+`limbo`引入了算法优化`diff`过程，在极端情况下与`vue3`的`children reconcile`性能一致。
 
-### 目前react调度存在的问题
+> 需要注意的是，`react`同样引入了简化(or改进)的算法优化`diff`过程，在某些场景下可能会节省`lis`算法的内部处理时间。
 
-1. 如何确定最小调度单位(minimal time slice)
-2. 每秒60帧在高刷新率的时代已经不足
-3. 优先级如何确认
-4. 已存在的系统如何和全新的调度融合？(参考事件系统)
-5. reconcile在异步更新时出现的重复生命周期问题，如何在未来的`v17`版本平滑更新？
-6. ......
-
-  当然，`react`已经解决了大量的问题，包括引入`fiber`架构，动态增长每帧可用时间等，但第`3`条问题之复杂，以至于完全可以独立于`schedule`来进行讨论，第 `4,5`条问题也导致`react`无法在不修改老旧的代码情况下平滑开启异步更新。以至于我们不能看到一个稳定版本的调度来进行学习，加上晦涩难懂的源码，导致了很高的学习成本。
-
+### suspense
+`limbo`内置了`suspense`，这意味着`limbo`也拥有了完整的中断/恢复功能。
 
 ### 调度策略
 `limbo`支持最大120帧，并且能自动启发式的更新调度时长，保证应用流畅。
@@ -64,9 +62,7 @@ function *asyncDiffHookFiber(fiber) {
   }
 }
 ```
-
 ## use
-
 ### hooks
 `limbo`不支持`class component`，但全面支持`hooks`:
 + useState
@@ -111,7 +107,16 @@ function App() {
 `Keep-Alive`组件类似`Vue`的`Keep-Alive`组件，它支持在组件卸载后依然保留`vnode`。并在恢复时保证状态不丢失。
 
 
+## 目前react调度存在的问题
 
+1. 如何确定最小调度单位(minimal time slice)
+2. 每秒60帧在高刷新率的时代已经不足
+3. 优先级如何确认
+4. 已存在的系统如何和全新的调度融合？(参考事件系统)
+5. reconcile在异步更新时出现的重复生命周期问题，如何在未来的`v17`版本平滑更新？
+6. ......
+
+  当然，`react`已经解决了大量的问题，包括引入`fiber`架构，动态增长每帧可用时间等，但第`3`条问题之复杂，以至于完全可以独立于`schedule`来进行讨论，第 `4,5`条问题也导致`react`无法在不修改老旧的代码情况下平滑开启异步更新。以至于我们不能看到一个稳定版本的调度来进行学习，加上晦涩难懂的源码，导致了很高的学习成本。
 
 
 
