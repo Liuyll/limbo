@@ -2,7 +2,9 @@
   "name": "limbos",
   "author": "liuyll",
   "license": "MIT",
-  "main": "src",
+  "main": "lib/limbo.js",
+  "browser": "lib/limbo.esm.js",
+  "module": "lib/limbo.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/liuyll/limbo"

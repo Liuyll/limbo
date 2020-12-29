@@ -282,7 +282,6 @@ function reconcileText(newFiber,oldFiber) {
 }
 
 function reconcileChildren(fiber,children) {
-    debugger
     if(!children) return
     const oldFibers = fiber.kids || {}
     const newFibers = (fiber.kids = buildKeyMap(children))
