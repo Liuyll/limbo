@@ -1,4 +1,4 @@
-import { HostFiber } from './fiber'
+import { HostFiber, Hook } from './fiber'
 import { isPrimitive,isArray } from './helper/utils'
 import { __LIMBO_SUSPENSE } from './core/symbol'
 
@@ -20,6 +20,8 @@ export function h(type,data,...children) {
         boundary,
         ...props
     } = _props
+
+    if(name === 'Fragment') type.tag = Hook
     if(name) type.name = name
     children = normalizeChildren(children)
 

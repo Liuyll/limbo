@@ -3,7 +3,7 @@ export const HostFiber = 0
 export const Hook = 1
 
 export function createFiber(vnode,op) {
-    return { ...vnode,tag: typeof vnode.type === 'function' ? Hook : HostFiber,effect: op }
+    return { ...vnode,tag: vnode.tag || typeof vnode.type === 'function' ? Hook : HostFiber,effect: op }
 }
 
 export function getParentElementFiber(fiber) {

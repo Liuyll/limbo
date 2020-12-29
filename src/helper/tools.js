@@ -15,9 +15,7 @@ export function insertElement(target) {
     const parentNode = parentElementFiber ? parentElementFiber.node : target.mountDom
 
     const insertPoint = target.insertPoint ? target.insertPoint : null
-    let lastPoint = insertPoint ? insertPoint.sibling : null
-    if(lastPoint) lastPoint = lastPoint.node
-    if(lastPoint === node) lastPoint = null
+    let lastPoint = insertPoint ? insertPoint.node.nextSibling : null
 
     parentNode.insertBefore(node,lastPoint)
 }

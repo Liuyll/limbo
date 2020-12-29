@@ -3,8 +3,6 @@
   "author": "liuyll",
   "license": "MIT",
   "main": "src",
-  "browser": "lib/limbo.esm.js",
-  "module": "lib/limbo.esm.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/liuyll/limbo"

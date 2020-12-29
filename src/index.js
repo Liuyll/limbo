@@ -1,6 +1,6 @@
 import { h } from './h'
 import { render } from './core/reconcile'
-import { Suspense } from './component/suspense.jsx'
+import { Suspense } from './component/suspense'
 import { createContext } from './component/context'
 import KeepAlive from './component/keep-alive'
 
