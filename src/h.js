@@ -2,8 +2,11 @@ import { HostFiber, Hook } from './fiber'
 import { isPrimitive,isArray } from './helper/utils'
 import { __LIMBO_SUSPENSE } from './core/symbol'
 
-export const __LIMBO_COMPONENT = Symbol('vnode')
-export function h(type,data,...children) {
+const __LIMBO_COMPONENT = Symbol('vnode')
+function createElement(type,data,...children) {
+    const patchFlag = children.length 
+        ? typeof children[children - 1] === 'number' ? children[children.length - 1] : null 
+        : null
     // 兼容ts-loader和babel-jsx-transform的不同
     if(!data) data = {}
     let { 
@@ -21,7 +24,6 @@ export function h(type,data,...children) {
         ...props
     } = _props
 
-    if(name === 'Fragment') type.tag = Hook
     if(name) type.name = name
     children = normalizeChildren(children)
 
@@ -47,11 +49,21 @@ export function h(type,data,...children) {
         props,
         type,
         __test,
+        ... patchFlag ? { patchFlag } : {},
         ...additionalProp
     }
 }
 
-export function cloneElement(node,props) {
+function createBlock(type,data,...children) {
+    data = {
+        ...data,
+        __block: true,
+        tag: Hook
+    }
+    return createElement(type, data, children)
+}
+
+function cloneElement(node,props) {
     const newProps = Object.assign({},node.props,props)
     return {
         ...node,
@@ -59,7 +71,7 @@ export function cloneElement(node,props) {
     }
 }
 
-export function createTextNode(text) {
+function createTextNode(text) {
     return {
         type: 'text',
         value: text,
@@ -84,4 +96,10 @@ function flattenArray(t) {
 }
 
 
-
+export {
+    createElement as h,
+    createBlock,
+    __LIMBO_COMPONENT,
+    createTextNode,
+    cloneElement,
+}

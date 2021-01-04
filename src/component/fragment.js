@@ -1,7 +1,7 @@
-import { h } from '../h' 
+import { createBlock } from '../h' 
 
 function Fragment({ children }) {
-    return h('Fragment', null, children)
+    return createBlock('Fragment', null, children)
 }
 
 export {

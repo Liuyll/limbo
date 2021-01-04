@@ -282,7 +282,6 @@ function reconcileText(newFiber,oldFiber) {
 }
 
 function reconcileChildren(fiber,children) {
-    debugger
     if(!children) return
     const oldFibers = fiber.kids || {}
     const newFibers = (fiber.kids = buildKeyMap(children))
@@ -437,15 +436,15 @@ function buildKeyMap(children) {
             if(child) {
                 if(Array.isArray(child)) {
                     child.forEach((c,y1) => {
-                        kidsKeyMap[keyMapKeyFactory(2,y1,c.key)] = c
+                        kidsKeyMap[getChildUniqueKey(2,y1,c.key)] = c
                         c.childIndex = y1
                     })
                 }
-                kidsKeyMap[keyMapKeyFactory(1,y,child.key)] = child
+                kidsKeyMap[getChildUniqueKey(1,y,child.key)] = child
                 child.childIndex = y
             }
         })
-    } else kidsKeyMap[keyMapKeyFactory(0,0,children.key)] = children
+    } else kidsKeyMap[getChildUniqueKey(0,0,children.key)] = children
     return kidsKeyMap
 }
 
@@ -481,7 +480,7 @@ function binaryQuery(target, point) {
     return left
 }
 
-function keyMapKeyFactory(x,y,key) {
+function getChildUniqueKey(x,y,key) {
     if(y == undefined) throw('Error: not order y')
     else if(key == undefined) {
         return x + '.' + y
