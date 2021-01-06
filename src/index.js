@@ -3,6 +3,7 @@ import { render } from './core/reconcile'
 import { Suspense } from './component/suspense'
 import { createContext } from './component/context'
 import KeepAlive from './component/keep-alive'
+import { Fragment } from './component/fragment'
 
 import {
     useState,
@@ -26,7 +27,8 @@ const limbo = {
     useReducer,
     useMemo,
     useLayoutEffect,
-    useContext
+    useContext,
+    Fragment,
 }
 
 export {
@@ -46,7 +48,8 @@ export {
 export {
     Suspense,
     KeepAlive,
-    createContext
+    createContext,
+    Fragment
 }
 
 export default limbo

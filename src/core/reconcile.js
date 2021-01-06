@@ -97,13 +97,13 @@ function reconcile(currentFiber) {
     let next
     let suspenseChildCommitQueue = null
     let suspense
-    if((suspense = findSuspenseAncestor(currentFiber))) {
+    if((suspense = findAdjacencySuspense(currentFiber))) {
         const flag = suspense.__suspenseFlag
         if(!(suspenseChildCommitQueue = suspenseMap.get(flag))) {
             const suspenseQueue = []
             suspenseChildCommitQueue = suspenseQueue
             suspenseMap.set(flag, suspenseQueue)
-        }
+        } else suspenseChildCommitQueue = suspenseMap.get(flag)
     } 
     next = beginWork(currentFiber,suspenseChildCommitQueue)
     
@@ -119,67 +119,147 @@ function beginWork(currentFiber, additionalCommitQueue) {
         ignoreChildUpdate = currentFiber.tag == HostFiber ? updateHost(currentFiber) : updateFiber(currentFiber)
     } catch(err) { 
         if(isPromise(err)) {
-            let suspense = currentFiber
-            while(suspense && suspense.__type !== __LIMBO_SUSPENSE) {
-                suspense = suspense.parent
-            }
-            
+            const suspense = findAdjacencySuspense(currentFiber)
+
             if(!suspense) throw Error('maybe need Suspense Wrap Component!')
             if(!suspense.fallback) throw Error('Suspense must get fallback prop!')
+            if(suspense.pendings.get(err)) {
+                suspense.pendings.get(err).push(currentFiber)
+            } else suspense.pendings.set(err, [currentFiber])
 
-            currentFiber.future = err
+            // dirty
+            if(currentFiber.dirty) currentFiber.dirty = false
             currentFiber.uncompleted = true
+            
             const { fallback } = suspense
             if(!needRecoverSuspenseMap.get(suspense.__suspenseFlag)) needRecoverSuspenseMap.set(suspense.__suspenseFlag, suspenseMap.get(suspense.__suspenseFlag))
-            
-            const suspenseChildren = suspense.props.children,
-                containerKids = suspense.child.kids,
-                containerChild = suspense.child.child
 
-            additionalRenderTasks.push(() => {
-                suspense.props.children = fallback
-                const container = suspense.child
-                container.child = null
-                container.kids = null
-                scheduleWorkOnFiber(suspense)
-            })
-    
-            const handleSuspenseResolve = () => {
-                const getCurrentPromisePendingFibers = (future) => needRecoverSuspenseMap.get(suspense.__suspenseFlag).filter(fiber => fiber.effect !== SUSPENSE && fiber.future === future)
-                const getPromisePendingFibersCount = () => new Set(needRecoverSuspenseMap.get(suspense.__suspenseFlag).filter(fiber => fiber.effect !== SUSPENSE).map(f => f.future)).size
-
-                if(err.__limbo_handing) return
-                else err.__limbo_handing = true
-                setTimeout(() => err.__limbo_handing = false)
-                if(getPromisePendingFibersCount() === 1) {
+            /**
+             * !resuming1 && !resuming2 无需恢复
+             * resuming1 && !resuming2 等待恢复
+             * parse1 recover: resuming1 && resuming2 正在恢复
+             * resuming1 && resuming2 == false 终止恢复
+             * parse2 commit: resuming1 && resuming2 完成恢复
+             */
+            if(!suspense.__resuming1 && !suspense.__resuming2) {
+                suspense.__resuming1 = true
+                additionalRenderTasks.push(() => {
+                    suspense.__children = suspense.props.children
+                    suspense.props.children = fallback
                     const container = suspense.child
-                    const fallback = container.child
-                    fallback.effect = DELETE
-                    commitQueue.push(fallback)
-                    container.kids = containerKids
-                    container.child = containerChild
-                    getCurrentPromisePendingFibers(err).forEach(f => delete f.future)
-                    needRecoverSuspenseMap.delete(suspense.__suspenseFlag)
-                    suspense.props.children = suspenseChildren
-                    scheduleWorkOnFiber(suspense)
+                    container.__resume_child = container.child
+                    container.__resume_kids = container.kids
+                    container.__resume_children = container.props.children
+                    container.child = null
+                    container.kids = null
                     
-                } else {
-                    currentFiber.end = () => {
-                        const currentReconcileCommits = suspenseMap.get(suspense.__suspenseFlag).slice(1)
-                        const currentSuspenseCommits = needRecoverSuspenseMap.get(suspense.__suspenseFlag)
-                        const insert = currentSuspenseCommits.findIndex(fiber => fiber === currentFiber)
-                        currentSuspenseCommits[insert].uncompleted = false
-                        currentSuspenseCommits.splice(insert + 1, 0, ...currentReconcileCommits)
-                        delete currentFiber.end
-                        getCurrentPromisePendingFibers(err).forEach(f => delete f.future)
-                    }
-                    scheduleWorkOnFiber(currentFiber)
+                    scheduleWorkOnFiber(suspense)
+                })
+            } else {
+                if(suspense.__resuming2) {
+                    suspense.__resuming2 = false
+                    suspense.__resumeCommit = null
+                    const container = suspense.child
+                    container.child = container.__fallback_child
+                    container.kids = container.__fallback_kids
+                    container.props.children = container.__fallback_children
                 }
             }
 
+            const handleSuspenseResolve = () => {
+                const getCurrentPromisePendingFibers = (future) => suspense.pendings.get(future)
+                const getPromisePendingFibersCount = () => suspense.pendings.size
+
+                if(err.__limbo_handing) return
+                else err.__limbo_handing = true
+                
+                const resume = () => {
+                    const currentHandleFibers = getCurrentPromisePendingFibers(err)
+                    suspense.pendings.delete(err)
+                   
+                    if(!getPromisePendingFibersCount()) {  
+                        suspense.__resuming2 = true
+                        const container = suspense.child
+                        const fallback = container.child
+                        container.__fallback_child = container.child
+                        container.__fallback_kids = container.kids
+                        container.__fallback_children = container.props.children
+                        fallback.effect = DELETE
+                        suspense.__resumeCommit = fallback
+                        container.kids = container.__resume_kids
+                        container.child = container.__resume_child
+                        container.props.children = container.__resume_children
+                        suspense.props.children = suspense.__children
+                        needRecoverSuspenseMap.delete(suspense.__suspenseFlag)
+                        suspense.beforeCommit = () => {
+                            delete suspense.beforeCommit
+                            // 恢复成功
+                            if(suspense.__resuming2) {
+                                delete suspense.__resuming1
+                                delete container.__resume_kids
+                                delete container.__resume_children
+                                delete container.__resume_child
+                            }
+                            delete suspense.__resuming2
+                            delete suspense.__resumeQueue
+                            delete container.__fallback_child
+                            delete container.__fallback_kids
+                            delete container.__fallback_children
+                        }
+                        suspense.afterCommit = () => {
+                            delete suspense.afterCommit
+                            delete suspense.__resumeCommit
+                        }
+                        scheduleWorkOnFiber(suspense)
+                    } else {
+                        currentHandleFibers.forEach(currentFiber => {
+                            currentFiber.__skip_commit = true
+                            currentFiber.beforeCommit = () => {
+                                /**
+                                 * slice(1) 去除本轮reconcile生成的suspenseMap头部元素
+                                 * 此时的头部元素是中断的根fiber，它本来就位于commit队列，不要重复添加
+                                 */
+                                const currentReconcileCommits = suspenseMap.get(suspense.__suspenseFlag).slice(1)
+                                const currentSuspenseCommits = needRecoverSuspenseMap.get(suspense.__suspenseFlag)
+                                const resumePoint = currentSuspenseCommits.findIndex(fiber => fiber === currentFiber)
+                                currentSuspenseCommits[resumePoint].uncompleted = false
+                                currentSuspenseCommits.splice(resumePoint + 1, 0, ...currentReconcileCommits)
+                                delete currentFiber.beforeCommit
+                            }
+
+                            // 如果在reconcile期间有其他恢复，加入调度栈等当前恢复执行完毕后调度
+                            currentFiber.afterCommit = () => {
+                                delete currentFiber.__skip_commit
+                                delete currentFiber.afterCommit
+                                suspense.__resumeQueue.shift()
+                                CPS()
+                            }
+                            scheduleWorkOnFiber(currentFiber)
+                        })
+                    }
+                }
+                const CPS = () => {
+                    if(!suspense.__resumeQueue.length) return
+                    const task = suspense.__resumeQueue[0]
+                    task()
+                }
+
+                if(!suspense.__resumeQueue || !suspense.__resumeQueue.length) {
+                    if(!suspense.__resumeQueue) suspense.__resumeQueue = [resume]
+                    else suspense.__resumeQueue.push(resume)
+                    CPS()
+                } else {
+                    suspense.__resumeQueue.push(resume)
+                }
+            }
+
+            const handleSuspenseCatch = (err) => {
+                throw(err)
+            } 
+
             err.then(
                 _ => handleSuspenseResolve(),
-                _ => handleSuspenseResolve()
+                _ => handleSuspenseCatch()
             )
         } else {
             fatalError = err
@@ -211,9 +291,7 @@ function beginWork(currentFiber, additionalCommitQueue) {
         if(currentFiber && currentFiber.child) return currentFiber.child 
         return null
         /* eslint-enable */
-        
     }
-
 }
 
 function completeUnitWork(currentFiber) {
@@ -270,7 +348,6 @@ function updateHost(elementFiber) {
     parentElementFiber.last = elementFiber
     elementFiber.node.last = null 
 
-    // debugger
     reconcileChildren(elementFiber,elementFiber.props.children)
     return true
 }
@@ -284,7 +361,7 @@ function reconcileText(newFiber,oldFiber) {
 function reconcileChildren(fiber,children) {
     if(!children) return
     const oldFibers = fiber.kids || {}
-    const newFibers = (fiber.kids = buildKeyMap(children))
+    const newFibers = (fiber.kids = generateKidMarks(children))
 
     const reused = {}
     for(let child in oldFibers) {
@@ -357,14 +434,21 @@ function frozenSuspenseFiber(fiber) {
 
 // phase2 commit 
 function flushCommitQueue(root) {
-    root.end && root.end()
+    root.beforeCommit && root.beforeCommit()
+    if(root.__skip_commit) {
+        commitQueue.forEach(fiber => frozenSuspenseFiber(fiber))
+    }
     needRecoverSuspenseMap.forEach(suspenseChildQueue => {
+        // TODO: slice(1) 去除Suspense
         suspenseChildQueue.filter(fiber => !fiber.uncompleted).forEach(fiber => frozenSuspenseFiber(fiber))
     })
+
+    if(root.__resumeCommit) commitQueue.unshift(root.__resumeCommit)
     commitQueue.forEach((work) => commit(work))
     root.done && root.done()
     resetOldCommit()
     resetSuspenseMap()
+    root.afterCommit && root.afterCommit()
 }
 
 function resetSuspenseMap() {
@@ -404,6 +488,7 @@ function commit(fiber) {
         replaceElement(fiber)
     }
 
+    if(Object.prototype.hasOwnProperty.call(fiber, 'uncommited_effect')) delete fiber.uncommited_effect
     // update ref
     setRef(ref,fiber.node)
 }
@@ -415,12 +500,12 @@ function findFallbackAncestor(currentFiber) {
     return currentFiber && currentFiber.__suspense_fallback ? currentFiber : null
 }
 
-function findSuspenseAncestor(currentFiber) {
-    while(currentFiber && currentFiber.parent && currentFiber.parent.__type !== __LIMBO_SUSPENSE) {
+function findAdjacencySuspense(currentFiber) {
+    while(currentFiber && currentFiber.__type !== __LIMBO_SUSPENSE) {
         currentFiber = currentFiber.parent
     }
-    if(!currentFiber.parent || currentFiber.parent.__type !== __LIMBO_SUSPENSE) return null
-    return currentFiber.parent
+    if(!currentFiber || currentFiber.__type !== __LIMBO_SUSPENSE) return null
+    return currentFiber
 }
 
 function sameVnode(oldFiber,curFiber) {
@@ -429,22 +514,22 @@ function sameVnode(oldFiber,curFiber) {
     return true
 }
 
-function buildKeyMap(children) {
+function generateKidMarks(children) {
     let kidsKeyMap = {}
     if(Array.isArray(children)) {
         children.forEach((child,y) => {
             if(child) {
                 if(Array.isArray(child)) {
                     child.forEach((c,y1) => {
-                        kidsKeyMap[keyMapKeyFactory(2,y1,c.key)] = c
+                        kidsKeyMap[getChildUniqueKey(2,y1,c.key)] = c
                         c.childIndex = y1
                     })
                 }
-                kidsKeyMap[keyMapKeyFactory(1,y,child.key)] = child
+                kidsKeyMap[getChildUniqueKey(1,y,child.key)] = child
                 child.childIndex = y
             }
         })
-    } else kidsKeyMap[keyMapKeyFactory(0,0,children.key)] = children
+    } else kidsKeyMap[getChildUniqueKey(0,0,children.key)] = children
     return kidsKeyMap
 }
 
@@ -480,7 +565,7 @@ function binaryQuery(target, point) {
     return left
 }
 
-function keyMapKeyFactory(x,y,key) {
+function getChildUniqueKey(x,y,key) {
     if(y == undefined) throw('Error: not order y')
     else if(key == undefined) {
         return x + '.' + y
