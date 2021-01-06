@@ -1,5 +1,7 @@
 {
   "name": "limbos",
+  "version": "2.0.0",
+  "description": "a high-performance mvvm library",
   "author": "liuyll",
   "license": "MIT",
   "main": "lib/limbo.js",

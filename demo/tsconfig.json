@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "lib": ["es2017","es6","dom"],
+        "experimentalDecorators": true,
+        "target": "ES6",
+        "jsx":"preserve",
+        "jsxFactory": "h",
+        "allowSyntheticDefaultImports": true,
+    },
+    "include": [
+        "**/*"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

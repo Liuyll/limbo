@@ -10,6 +10,10 @@ a mini-react force on / concurrent mode / event-system / fiber
 
 [preact](https://github.com/preactjs/preact)
 
+## install
+```
+npm install limbos
+```
 ## advance
 + `schedule`
 + `高性能渲染`
@@ -103,6 +107,41 @@ function App() {
 + Context
 + Keep-Alive
 
+#### Suspense
+`suspense`是`limbo`非常重要的组件之一：
+```
+function Read() {
+    const promise = new Promise(r => setTimeout(r,3000))
+    let resolve = false
+    promise.then(r => {
+        console.log('READ')
+        resolve = true
+    })
+    return {
+        get() {
+            if(resolve) return 10
+            else throw promise
+        }
+    }
+}
+const read = Read()
+
+function SuspenseTest() {
+    return (
+        <Suspense fallback={<div>loading</div>}>
+            <SuspenseTestChild/>
+        </Suspense>
+    )
+}
+
+function SuspenseTestChild() {
+    const data = read.get()
+    return (
+        <div>{data}</div>
+    )
+}
+
+```
 #### Keep-Alive
 `Keep-Alive`组件类似`Vue`的`Keep-Alive`组件，它支持在组件卸载后依然保留`vnode`。并在恢复时保证状态不丢失。
 
