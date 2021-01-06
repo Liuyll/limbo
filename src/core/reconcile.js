@@ -361,7 +361,7 @@ function reconcileText(newFiber,oldFiber) {
 function reconcileChildren(fiber,children) {
     if(!children) return
     const oldFibers = fiber.kids || {}
-    const newFibers = (fiber.kids = buildKeyMap(children))
+    const newFibers = (fiber.kids = generateKidMarks(children))
 
     const reused = {}
     for(let child in oldFibers) {
@@ -514,7 +514,7 @@ function sameVnode(oldFiber,curFiber) {
     return true
 }
 
-function buildKeyMap(children) {
+function generateKidMarks(children) {
     let kidsKeyMap = {}
     if(Array.isArray(children)) {
         children.forEach((child,y) => {
