@@ -38,6 +38,7 @@ function createElement(type,data,...children) {
         __type = __LIMBO_SUSPENSE
         if(!fallback) throw new Error('Suspense must get fallback prop!')
         fallback.__suspense_fallback = true
+        additionalProp.pendings = new Map()
         additionalProp.fallback = fallback
         additionalProp.boundary = boundary
         additionalProp.__suspenseFlag = Symbol('suspense')
