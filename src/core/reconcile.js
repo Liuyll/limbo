@@ -1,6 +1,6 @@
 import { scheduleTask,shouldYield,planWork, ANY } from './schedule'
 import { createFiber,getParentElementFiber,HostFiber,setCurrentFiber,Hook } from '../fiber'
-import { reComputeHook } from '../hooks'
+import { reComputeHook, getCurrentCalledEffect } from '../hooks'
 export { getCurrentFiber } from '../fiber'
 import { SCU,insertElement,deleteElement,isFn,setRef, replaceElement } from '../helper/tools'
 import { mountElement, updateElement, setTextContent } from '../dom'
@@ -37,12 +37,12 @@ let commitQueue = []
 let currentCommitRoot
 let currentExecuteWorkUnit
 
-export function render(vnode,mountDom,cb) {
+function render(vnode,mountDom,cb) {
     const fiberRoot = createFiberRoot(vnode,mountDom,cb)
     scheduleWorkOnFiber(fiberRoot)
 }
 
-export function scheduleWorkOnFiber(fiber, force) {
+function scheduleWorkOnFiber(fiber, force) {
     const priority = fiber.__priority || ANY
     if(force) updateQueue.push(fiber)
     // 避免重复加入更新队列
@@ -51,6 +51,7 @@ export function scheduleWorkOnFiber(fiber, force) {
 }
 
 function runWorkLoop(dopast) {
+    // debugger
     if(!currentExecuteWorkUnit) currentExecuteWorkUnit = updateQueue.shift()
     // fiber level task
     currentExecuteWorkUnit = performUnitWork(currentExecuteWorkUnit, dopast)
@@ -473,11 +474,13 @@ function commit(fiber) {
         deleteElement(fiber)
     } else if(fiber.tag === Hook) {
         if(hooks) {
-            hooks.layout.forEach(clearPrevEffect)
-            hooks.layout.forEach(callEffect)
+            const layoutHooks = getCurrentCalledEffect(hooks.layout)
+            layoutHooks.forEach(clearPrevEffect)
+            layoutHooks.forEach(callEffect)
             planWork(() => {
-                hooks.effect.forEach(clearPrevEffect)
-                hooks.effect.forEach(callEffect)
+                const effectHooks = getCurrentCalledEffect(hooks.effect)
+                effectHooks.forEach(clearPrevEffect)
+                effectHooks.forEach(callEffect)
             })
         } 
     } else if(effect === UPDATE) {
@@ -586,4 +589,9 @@ function clearPrevEffect(state) {
 
 function isPromise(target) {
     return target instanceof Promise && typeof target.then === 'function'
+}
+
+export {
+    scheduleWorkOnFiber,
+    render
 }

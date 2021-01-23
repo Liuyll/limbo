@@ -1,4 +1,9 @@
-import shallowEqual from 'shallowequal'
+import _shallowEqual from 'shallowequal'
+
+export const shallowEqual = (o, n) => {
+    if(o === undefined && n === undefined) return false
+    return _shallowEqual(o, n)
+}
 
 export function SCU(oldProps,newProps) {
     return !shallowEqual(oldProps,newProps)
