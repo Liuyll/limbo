@@ -13,7 +13,8 @@ import {
     useReducer,
     useMemo,
     useLayoutEffect,
-    useContext
+    useContext,
+    useCallback
 } from './hooks'
 
 const limbo = {
@@ -28,6 +29,7 @@ const limbo = {
     useMemo,
     useLayoutEffect,
     useContext,
+    useCallback,
     Fragment,
 }
 
@@ -42,7 +44,8 @@ export {
     useMemo,
     useLayoutEffect,
     useContext,
-    useReducer
+    useReducer,
+    useCallback
 }
 
 export {

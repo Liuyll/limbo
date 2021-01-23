@@ -33,7 +33,7 @@ function schedule(){
     while(currentTask) {
         if(currentTask.deadline > getTime() && shouldYield()) break
         let cb = currentTask.cb
-        const doImmediately = currentTask.deadline >= getTime()
+        const doImmediately = currentTask.deadline <= getTime()
         const nextTask = cb(doImmediately)
         if(nextTask) currentTask.cb = nextTask
         else {
@@ -56,8 +56,10 @@ function cancelSchedule() {
 
 function computedTime(rafTime) {
     const previousFrameDeadline = currentFrameDeadline
+    // 下一帧截止时间: 剩余时间 + 固定帧长
     NEXT_FRAME_LENGTH = rafTime - previousFrameDeadline + ACTIVE_FRAME_LENGTH
     
+    // 自适应固定帧长
     if(NEXT_FRAME_LENGTH < ACTIVE_FRAME_LENGTH && FRAME_LENGTH < ACTIVE_FRAME_LENGTH) {
         if(NEXT_FRAME_LENGTH < 8) NEXT_FRAME_LENGTH = 8
         else ACTIVE_FRAME_LENGTH = NEXT_FRAME_LENGTH > FRAME_LENGTH ? NEXT_FRAME_LENGTH : FRAME_LENGTH

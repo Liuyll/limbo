@@ -1,4 +1,4 @@
-import shallowEqual from 'shallowequal'
+import { shallowEqual } from './helper/tools'
 import { scheduleWorkOnFiber } from './core/reconcile'
 import { getCurrentFiber } from './fiber'
 
@@ -6,53 +6,77 @@ const Hook = function() {
     this.state = null
     this.next = null
     this.deps = null
-    this.effect = null
+    // effect index
+    this.effect = null,
     this.clear = null
     this.init = true
 }
 
-export let getHook = () => getCurrentFiberHook()
+let getHook
 
-export function useState(initState) {
-    const reducer = (curState,newValue) => {
+function useState(initState) {
+    const reducer = useCallback((curState,newValue) => {
         if(typeof newValue != 'function') {
             return newValue
         } else {
             const fn = newValue
             return fn(curState)
         }
-    }
+    }, [])
 
     return useReducer(reducer,initState)
 }
 
-export function useReducer(reducer,initState) {
+function useReducer(reducer,initState) {
     const [hook,fiber] = getHook()
-    const effect = action => {
+    const effect = useCallback(action => {
         let newState = reducer(hook.state,action)
         if(!shallowEqual(newState,hook.state)) {
             hook.state = newState
             scheduleWorkOnFiber(fiber)
         }
-    }
+    }, [reducer])
 
-    let init = initHook(hook,(hook) => hook.state = initState)
-    return init ? [initState,effect] : [hook.state,effect]
+    initHook(hook,(hook) => {
+        if(typeof initState === 'function') initState = initState()
+        hook.state = initState
+    })
+    return [hook.state,effect]
 }
 
-export function useEffect(fn,deps,isLayout = false) {
-    useMemo(() => {
-        const [hook,fiber] = getHook()
-        const oldDeps = hook.deps
-        if(!shallowEqual(oldDeps,deps)) {
-            hook.deps = deps
-            hook.cb = fn
-            fiber.hooks[isLayout ? 'layout' : 'effect'].push({ effect: fn })
+function useCallback(fn, deps) {
+    return useMemo(() => fn, deps)
+}
+
+function useEffect(fn,deps,isLayout = false) {
+    const [hook,fiber] = getHook()
+    const oldDeps = hook.deps
+    // debugger
+    if(!shallowEqual(oldDeps,deps)) {
+        hook.deps = deps
+        hook.cb = fn
+        const commitHook = fiber.hooks[isLayout ? 'layout' : 'effect']
+        if(hook.effect != null) {
+            commitHook[hook.effect].effect = fn
+        } else {
+            commitHook.push({ effect: fn })
+            hook.effect = commitHook.length - 1
         }
-    },[])
+        commitHook[hook.effect].call = true
+    }
 }
 
-export function useAction(fn,deps) {
+function getCurrentCalledEffect(hooks) {
+    return hooks.filter(hook => {
+        if(hook.call) {
+            hook.call = false
+            return true
+        }
+        return false
+    })
+}
+
+function useAction(fn,deps) {
     const [hook] = getHook()
     const oldDeps = hook.deps
     if(!shallowEqual(oldDeps,deps)) {
@@ -61,11 +85,11 @@ export function useAction(fn,deps) {
     }
 }
 
-export function useRef(init) {
+function useRef(init) {
     return useMemo(() => ({ current: init }),[])
 }
 
-export function useMemo(cb,deps) {
+function useMemo(cb,deps) {
     const [hook] = getHook()
     if(!initHook(hook,(hook) => {
         hook.state = cb()
@@ -77,16 +101,19 @@ export function useMemo(cb,deps) {
     return hook.state 
 }
 
-export function getCurrentFiberHook() {
+function getCurrentFiberHook() {
     const currentFiber = getCurrentFiber()
     let hooks = currentFiber.hooks ? currentFiber.hooks : (currentFiber.hooks = { hookList: new Hook(),effect: [],layout: [] })
     let beforeHook = hooks.hookList
     return () => {
-        return [beforeHook.next || (beforeHook.next = new Hook()),currentFiber]
+        if(!beforeHook.next) beforeHook.next = new Hook()
+        beforeHook = beforeHook.next
+        const currentHook = beforeHook
+        return [currentHook, currentFiber]
     }
 }
 
-export function useContext(context,selector = (v) => v) {
+function useContext(context,selector = (v) => v) {
     // eslint-disable-next-line
     const [_,forceUpdate] = useReducer(_c => _c + 1,0)
     const val = useRef(selector(context.value))
@@ -104,25 +131,43 @@ export function useContext(context,selector = (v) => v) {
     return val.current
 }
 
-export function useLayoutEffect(fn,deps) {
+function useLayoutEffect(fn,deps) {
     useEffect(fn,deps,true)
 }
 
-export function reComputeHook() {
+function reComputeHook() {
     getHook = getCurrentFiberHook()
 }
 
-export function setInitState(hook) {
+function setInitState(hook) {
     hook.init = false
 }
 
-export function initHook(hook,cb) {
+function initHook(hook,cb) {
     if(hook.init) {
         setInitState(hook)
         cb(hook)
-        hook.init = false
         return true
     }
     return false
 }
 
+export {
+    useState,
+    useEffect,
+    useCallback,
+    useReducer,
+    useRef,
+    useMemo,
+    useAction,
+    useContext,
+    useLayoutEffect
+}
+
+export {
+    reComputeHook,
+    setInitState,
+    initHook,
+    getCurrentFiberHook,
+    getCurrentCalledEffect,
+}
