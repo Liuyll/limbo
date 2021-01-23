@@ -5,7 +5,6 @@ export { getCurrentFiber } from '../fiber'
 import { SCU,insertElement,deleteElement,isFn,setRef, replaceElement } from '../helper/tools'
 import { mountElement, updateElement, setTextContent } from '../dom'
 import { __LIMBO_SUSPENSE } from '../core/symbol'
-// import * as cp from 'checkpromise'
 
 const DELETE    = 0b00000001
 const UPDATE    = 0b00000010
