@@ -76,13 +76,26 @@ function getCurrentCalledEffect(hooks) {
     })
 }
 
-function useAction(fn,deps) {
+function useAction(fn,deps, isEffect) {
     const [hook] = getHook()
     const oldDeps = hook.deps
+    let clear
     if(!shallowEqual(oldDeps,deps)) {
         hook.deps = deps
-        fn()
+        clear = fn()
     }
+    if(isEffect) {
+        const effect = isEffect === 'layout' ? useLayoutEffect : useEffect
+        effect(() => clear, deps)
+    }
+}
+
+function useActionEffect(fn, deps) {
+    useAction(fn, deps, 'effect')
+}
+
+function useActionLayout(fn, deps) {
+    useAction(fn, deps, 'layout')
 }
 
 function useRef(init) {
@@ -118,15 +131,16 @@ function useContext(context,selector = (v) => v) {
     const [_,forceUpdate] = useReducer(_c => _c + 1,0)
     const val = useRef(selector(context.value))
 
-    useLayoutEffect(() => {
+    useActionEffect(() => {
         let subFn = (newValue) => {
             if(selector(newValue) === val.current) return 
             val.current = newValue
             forceUpdate()
         } 
-        context.add(subFn)
-        return context.deleteSub(subFn)
-    },[])
+        
+        context.addSub(subFn)
+        return () => context.deleteSub(subFn)
+    }, [])
 
     return val.current
 }
@@ -160,6 +174,8 @@ export {
     useRef,
     useMemo,
     useAction,
+    useActionEffect,
+    useActionLayout,
     useContext,
     useLayoutEffect
 }
