@@ -1,7 +1,7 @@
 import { h } from './h'
 import { render } from './core/reconcile'
 import { Suspense } from './component/suspense'
-import { createContext } from './component/context'
+import { createContext } from './api/context'
 import KeepAlive from './component/keep-alive'
 import { Fragment } from './component/fragment'
 
@@ -51,8 +51,11 @@ export {
 export {
     Suspense,
     KeepAlive,
-    createContext,
     Fragment
+}
+
+export {
+    createContext
 }
 
 export default limbo

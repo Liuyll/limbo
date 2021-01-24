@@ -1,21 +1,23 @@
-import { useLayoutEffect,useContext } from '../hooks'
+import { useLayoutEffect, useContext, useAction } from '../hooks'
 import { cloneElement } from '../h'
 
 export function createContext(init) {
     const context = {
         value: init,
+        _subscribe: new Set(),
         Provider: function({ value,children }) {
-            useLayoutEffect(() => {
+            useAction(() => {
                 context.value = value
+            }, [value])
+            useLayoutEffect(() => {
                 context.updateSub()
-            })
+            }, [value])
             return children
         },
         Consumer: function({ children,selector }) {
             const value = useContext(context,selector)
             return cloneElement(children,{ value })
         },
-        _subscribe: new Set(),
         addSub(fn) {
             this._subscribe.add(fn)
         },

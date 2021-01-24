@@ -1,4 +1,6 @@
 import _shallowEqual from 'shallowequal'
+import { Hook } from '../fiber'
+import { planWork } from '../core/schedule'
 
 export const shallowEqual = (o, n) => {
     if(o === undefined && n === undefined) return false
@@ -11,7 +13,13 @@ export function SCU(oldProps,newProps) {
 
 export function deleteElement(target) {
     const parentElementNode = target.parentElementFiber.node
-    parentElementNode.removeChild(target.node)
+    let removeHost = target
+    while(removeHost && removeHost.tag === Hook) removeHost = removeHost.child
+    removeHost && parentElementNode.removeChild(removeHost.node)
+    if(target.hooks) {
+        target.hooks.effect.forEach(hook => hook.clear && planWork(hook.clear()))
+        target.hooks.layout.forEach(hook => hook.clear && hook.clear())
+    }
 }
 
 export function insertElement(target) {
