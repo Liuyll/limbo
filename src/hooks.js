@@ -1,6 +1,7 @@
-import { shallowEqual } from './helper/tools'
+import { shallowEqual, isFn } from './helper/tools'
 import { scheduleWorkOnFiber } from './core/reconcile'
 import { getCurrentFiber } from './fiber'
+import { planWork } from './core/schedule'
 
 const Hook = function() {
     this.state = null
@@ -66,16 +67,6 @@ function useEffect(fn,deps,isLayout = false) {
     }
 }
 
-function getCurrentCalledEffect(hooks) {
-    return hooks.filter(hook => {
-        if(hook.call) {
-            hook.call = false
-            return true
-        }
-        return false
-    })
-}
-
 function useAction(fn,deps, isEffect) {
     const [hook] = getHook()
     const oldDeps = hook.deps
@@ -114,17 +105,7 @@ function useMemo(cb,deps) {
     return hook.state 
 }
 
-function getCurrentFiberHook() {
-    const currentFiber = getCurrentFiber()
-    let hooks = currentFiber.hooks ? currentFiber.hooks : (currentFiber.hooks = { hookList: new Hook(),effect: [],layout: [] })
-    let beforeHook = hooks.hookList
-    return () => {
-        if(!beforeHook.next) beforeHook.next = new Hook()
-        beforeHook = beforeHook.next
-        const currentHook = beforeHook
-        return [currentHook, currentFiber]
-    }
-}
+
 
 function useContext(context,selector = (v) => v) {
     // eslint-disable-next-line
@@ -137,7 +118,7 @@ function useContext(context,selector = (v) => v) {
             val.current = newValue
             forceUpdate()
         } 
-        
+
         context.addSub(subFn)
         return () => context.deleteSub(subFn)
     }, [])
@@ -147,6 +128,28 @@ function useContext(context,selector = (v) => v) {
 
 function useLayoutEffect(fn,deps) {
     useEffect(fn,deps,true)
+}
+
+function getCurrentCalledEffect(hooks) {
+    return hooks.filter(hook => {
+        if(hook.call) {
+            hook.call = false
+            return true
+        }
+        return false
+    })
+}
+
+function getCurrentFiberHook() {
+    const currentFiber = getCurrentFiber()
+    let hooks = currentFiber.hooks ? currentFiber.hooks : (currentFiber.hooks = { hookList: new Hook(),effect: [],layout: [] })
+    let beforeHook = hooks.hookList
+    return () => {
+        if(!beforeHook.next) beforeHook.next = new Hook()
+        beforeHook = beforeHook.next
+        const currentHook = beforeHook
+        return [currentHook, currentFiber]
+    }
 }
 
 function reComputeHook() {
@@ -164,6 +167,29 @@ function initHook(hook,cb) {
         return true
     }
     return false
+}
+
+function clearAndCallEffect(hooks) {
+    const layoutHooks = getCurrentCalledEffect(hooks.layout)
+    layoutHooks.forEach(clearPrevEffect)
+    layoutHooks.forEach(callEffect)
+    planWork(() => {
+        const effectHooks = getCurrentCalledEffect(hooks.effect)
+        effectHooks.forEach(clearPrevEffect)
+        effectHooks.forEach(callEffect)
+    })
+}
+
+function callEffect(state) {
+    const effect = state.effect
+    const clear = effect()
+    // 清理函数
+    if(isFn(clear)) state.clear = clear
+}
+
+function clearPrevEffect(state) {
+    const { clear } = state
+    clear && clear()
 }
 
 export {
@@ -186,4 +212,5 @@ export {
     initHook,
     getCurrentFiberHook,
     getCurrentCalledEffect,
+    clearAndCallEffect
 }

@@ -1,8 +1,8 @@
-import { scheduleTask,shouldYield,planWork, ANY } from './schedule'
+import { scheduleTask,shouldYield, ANY } from './schedule'
 import { createFiber,getParentElementFiber,HostFiber,setCurrentFiber,Hook } from '../fiber'
-import { reComputeHook, getCurrentCalledEffect } from '../hooks'
+import { reComputeHook, clearAndCallEffect } from '../hooks'
 export { getCurrentFiber } from '../fiber'
-import { SCU,insertElement,deleteElement,isFn,setRef, replaceElement } from '../helper/tools'
+import { SCU,insertElement,deleteElement, setRef, replaceElement } from '../helper/tools'
 import { mountElement, updateElement, setTextContent } from '../dom'
 import { __LIMBO_SUSPENSE } from '../core/symbol'
 // import * as cp from 'checkpromise'
@@ -474,14 +474,7 @@ function commit(fiber) {
         deleteElement(fiber)
     } else if(fiber.tag === Hook) {
         if(hooks) {
-            const layoutHooks = getCurrentCalledEffect(hooks.layout)
-            layoutHooks.forEach(clearPrevEffect)
-            layoutHooks.forEach(callEffect)
-            planWork(() => {
-                const effectHooks = getCurrentCalledEffect(hooks.effect)
-                effectHooks.forEach(clearPrevEffect)
-                effectHooks.forEach(callEffect)
-            })
+            clearAndCallEffect(hooks)
         } 
     } else if(effect === UPDATE) {
         updateElement(fiber, true)
@@ -573,18 +566,6 @@ function getChildUniqueKey(x,y,key) {
     else if(key == undefined) {
         return x + '.' + y
     } else return x + '..' + key
-}
-
-function callEffect(state) {
-    const effect = state.effect
-    const clear = effect()
-    // 清理函数
-    if(isFn(clear)) state.clear = clear
-}
-
-function clearPrevEffect(state) {
-    const { clear } = state
-    clear && clear()
 }
 
 function isPromise(target) {
