@@ -1,4 +1,5 @@
 import _shallowEqual from 'shallowequal'
+import { Hook } from '../fiber'
 
 export const shallowEqual = (o, n) => {
     if(o === undefined && n === undefined) return false
@@ -11,7 +12,8 @@ export function SCU(oldProps,newProps) {
 
 export function deleteElement(target) {
     const parentElementNode = target.parentElementFiber.node
-    parentElementNode.removeChild(target.node)
+    while(target && target.tag === Hook) target = target.child
+    target && parentElementNode.removeChild(target.node)
 }
 
 export function insertElement(target) {
