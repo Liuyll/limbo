@@ -344,7 +344,9 @@ function updateHost(elementFiber) {
     // 插入位置是第一个dom父节点的最后
     let parentElementFiber = elementFiber.parentElementFiber || {}
     if(!elementFiber.insertPoint) {
-        elementFiber.insertPoint = parentElementFiber.last || null
+        let parentLastHostFiber = parentElementFiber.last
+        while(parentLastHostFiber && parentLastHostFiber.tag !== HostFiber) parentLastHostFiber = parentLastHostFiber.child
+        elementFiber.insertPoint = parentLastHostFiber
     } 
     parentElementFiber.last = elementFiber
     elementFiber.node.last = null 
@@ -379,7 +381,7 @@ function reconcileChildren(fiber,children) {
 
     markStableElements(Object.values(reused))
     let prevFiber = null
-    let last = null
+
     for(let child in newFibers) {
         let newChild = newFibers[child]
         let reUseFiber = reused[child]
@@ -404,7 +406,6 @@ function reconcileChildren(fiber,children) {
             }
             if(reUseFiber.type === 'text' && newChild.type === 'text') reconcileText(newChild, reUseFiber)
         } else {
-            newChild.insertPoint = last
             newChild = createFiber(newChild,ADD)
         }
 
@@ -418,7 +419,6 @@ function reconcileChildren(fiber,children) {
             fiber.child = newChild
         }
         prevFiber = newChild
-        last = newChild
     }
     if(prevFiber) prevFiber.sibling = null
 
