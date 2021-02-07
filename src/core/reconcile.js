@@ -6,8 +6,6 @@ import { SCU,insertElement,deleteElement, setRef, replaceElement } from '../help
 import { mountElement, updateElement, setTextContent } from '../dom'
 import { __LIMBO_SUSPENSE } from '../core/symbol'
 
-window.shouldYield = shouldYield
-
 const DELETE    = 0b00000001
 const UPDATE    = 0b00000010
 // TODO: Array diff LIS优化
