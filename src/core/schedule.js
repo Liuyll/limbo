@@ -21,6 +21,7 @@ export function scheduleTask(cb, priority) {
         cb,
         startTime,
         deadline: startTime + timeout,
+        priority
     }
     heapq.push(taskQueue,newTask,cmp)
 
@@ -32,14 +33,16 @@ function schedule(){
     let currentTask = heapq.top(taskQueue)
     while(currentTask) {
         if(currentTask.deadline > getTime() && shouldYield()) break
+        currentTask = heapq.pop(taskQueue)
+
         let cb = currentTask.cb
         const doImmediately = currentTask.deadline <= getTime()
         const nextTask = cb(doImmediately)
-        if(nextTask) currentTask.cb = nextTask
-        else {
-            heapq.pop(taskQueue)
-            currentTask = heapq.top(taskQueue)
+        if(nextTask) {
+            // inherit parent priority
+            scheduleTask(nextTask, nextTask.priority)
         }
+        currentTask = heapq.top(taskQueue)
     }
 
     return !!currentTask
@@ -122,5 +125,5 @@ export const planWork = (() => {
 
 // 小顶堆
 function cmp(task1,task2) {
-    return task1.deadline - task2.deadline
+    return task1.deadline < task2.deadline
 }
