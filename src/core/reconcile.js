@@ -5,7 +5,8 @@ export { getCurrentFiber } from '../fiber'
 import { SCU,insertElement,deleteElement, setRef, replaceElement } from '../helper/tools'
 import { mountElement, updateElement, setTextContent } from '../dom'
 import { __LIMBO_SUSPENSE } from '../core/symbol'
-// import * as cp from 'checkpromise'
+
+window.shouldYield = shouldYield
 
 const DELETE    = 0b00000001
 const UPDATE    = 0b00000010
@@ -16,7 +17,6 @@ const NOWORK    = 0b00010000
 const SUSPENSE  = 0b00100000
 
 function createFiberRoot(vnode,mountDom,done) {
-    // return new FiberRoot(node,props,done)
     return {
         node: mountDom,
         done,
@@ -31,11 +31,9 @@ function createFiberRoot(vnode,mountDom,done) {
 const additionalRenderTasks = []
 const needRecoverSuspenseMap = new Map()
 const suspenseMap = new Map()
-const updateQueue = []
 
-let commitQueue = []
-let currentCommitRoot
-let currentExecuteWorkUnit
+const updateQueue = []
+const commitQueue = []
 
 function render(vnode,mountDom,cb) {
     const fiberRoot = createFiberRoot(vnode,mountDom,cb)
@@ -43,38 +41,50 @@ function render(vnode,mountDom,cb) {
 }
 
 function scheduleWorkOnFiber(fiber, force) {
+    let currentCommitRoot = {
+        current: null,
+        root: fiber
+    }
+
     const priority = fiber.__priority || ANY
     if(force) updateQueue.push(fiber)
     // 避免重复加入更新队列
     else !fiber.dirty && updateQueue.push(fiber) && (fiber.dirty = true)
-    scheduleTask(runWorkLoop, priority)
+    scheduleTask(dopast => runWorkLoop.call(null, dopast, currentCommitRoot, null), priority)
 }
 
-function runWorkLoop(dopast) {
-    // debugger
+function runWorkLoop(dopast, currentCommitRoot, currentExecuteWorkUnit) {
+    // dopast = true
     if(!currentExecuteWorkUnit) currentExecuteWorkUnit = updateQueue.shift()
     // fiber level task
-    currentExecuteWorkUnit = performUnitWork(currentExecuteWorkUnit, dopast)
+    currentExecuteWorkUnit = performUnitWork(currentCommitRoot, currentExecuteWorkUnit, dopast)
 
     // time finish but task isn't finish
     if(currentExecuteWorkUnit && !dopast) {
-        return runWorkLoop.bind(null)
+        return dopast => runWorkLoop.call(null, dopast, currentCommitRoot, currentExecuteWorkUnit)
     } 
     while(additionalRenderTasks.length) {
         const task = additionalRenderTasks.shift()
         task()
     }
-    if(updateQueue.length) return runWorkLoop.bind(null)
-    if(currentCommitRoot) {
-        flushCommitQueue(currentCommitRoot)
+    
+    const delayUntilNoUpdateTask = () => {
+        if(updateQueue.length) {
+            scheduleTask(delayUntilNoUpdateTask, ANY)
+        } else {
+            flushCommitQueue(currentCommitRoot.current)
+        }
+    }
+    if(currentCommitRoot.current) {
+        delayUntilNoUpdateTask()
     }
     return null
 }
 
-function performUnitWork(currentExecuteWorkUnit, dopast) {
+function performUnitWork(currentCommitRoot, currentExecuteWorkUnit, dopast) {
     while(currentExecuteWorkUnit && (!shouldYield() || dopast)) {
         try {
-            currentExecuteWorkUnit = reconcile(currentExecuteWorkUnit)
+            currentExecuteWorkUnit = reconcile(currentCommitRoot, currentExecuteWorkUnit)
         } catch(err) {
             // TODO: Error Boundary
             // eslint-disable-next-line
@@ -85,14 +95,14 @@ function performUnitWork(currentExecuteWorkUnit, dopast) {
     return currentExecuteWorkUnit
 }
 
-function reconcile(currentFiber) {
+function reconcile(currentRoot, currentFiber) {
     if(
         currentFiber.__type === __LIMBO_SUSPENSE && 
         needRecoverSuspenseMap.get(currentFiber.__suspenseFlag) &&
         currentFiber.props.children &&
         !currentFiber.props.children.__suspense_fallback
     ) {
-        return completeUnitWork(currentFiber)
+        return completeUnitWork(currentRoot, currentFiber)
     }
     currentFiber.parentElementFiber = getParentElementFiber(currentFiber)
     let next
@@ -109,7 +119,7 @@ function reconcile(currentFiber) {
     next = beginWork(currentFiber,suspenseChildCommitQueue)
     
     if(!next) {
-        next = completeUnitWork(currentFiber)
+        next = completeUnitWork(currentRoot, currentFiber)
     }
     return next
 }
@@ -158,7 +168,7 @@ function beginWork(currentFiber, additionalCommitQueue) {
                 })
             } else {
                 if(suspense.__resuming2) {
-                    suspense.__resuming2 = false
+                    breakRecovery(suspense)
                     suspense.__resumeCommit = null
                     const container = suspense.child
                     container.child = container.__fallback_child
@@ -192,6 +202,7 @@ function beginWork(currentFiber, additionalCommitQueue) {
                         container.props.children = container.__resume_children
                         suspense.props.children = suspense.__children
                         needRecoverSuspenseMap.delete(suspense.__suspenseFlag)
+                        
                         suspense.beforeCommit = () => {
                             delete suspense.beforeCommit
                             // 恢复成功
@@ -295,10 +306,14 @@ function beginWork(currentFiber, additionalCommitQueue) {
     }
 }
 
-function completeUnitWork(currentFiber) {
+function breakRecovery(suspense) {
+    suspense.__resuming2 = false
+}
+
+function completeUnitWork(currentRoot, currentFiber) {
     while(currentFiber) {
-        if(currentFiber.dirty === false && !currentCommitRoot) {
-            currentCommitRoot = currentFiber
+        if(currentFiber.dirty === false && currentFiber === currentRoot.root) {
+            currentRoot.current = currentFiber
             return null
         }
         if(currentFiber.sibling) return currentFiber.sibling
@@ -460,8 +475,7 @@ function resetSuspenseMap() {
 }
 
 function resetOldCommit() {
-    commitQueue = []
-    currentCommitRoot = null
+    commitQueue.length = 0
     setCurrentFiber(null)
 }
 

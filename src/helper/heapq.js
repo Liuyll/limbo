@@ -44,9 +44,7 @@ heapq.pushpop = function(heap, item, cmp) {
 heapq.heapify = function(arr, cmp) {
     cmp = cmp || cmplt
 
-    for (let idx = Math.floor(arr.length / 2) - 1;
-        idx >= 0; --idx)
-        siftup(arr, idx, cmp)
+    for (let idx = Math.floor(arr.length / 2) - 1; idx >= 0; --idx) siftup(arr, idx, cmp)
     return arr
 }
 
@@ -90,8 +88,7 @@ function siftup(heap, idx, cmp) {
     while (childIdx < endIdx) {
         let rightIdx = childIdx + 1
 
-        if (rightIdx < endIdx && (!cmp(
-            heap[childIdx], heap[rightIdx]))) {
+        if (rightIdx < endIdx && (!cmp(heap[childIdx], heap[rightIdx]))) {
             childIdx = rightIdx
         }
         heap[idx] = heap[childIdx]
@@ -103,4 +100,5 @@ function siftup(heap, idx, cmp) {
     siftdown(heap, startIdx, idx, cmp)
 }
 
-export default heapq
+module.exports = heapq
+// export default heapq
