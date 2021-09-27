@@ -4,6 +4,7 @@ import { Suspense } from './component/suspense'
 import { createContext } from './api/context'
 import KeepAlive from './component/keep-alive'
 import { Fragment } from './component/fragment'
+import { resolveTemplate } from './core/template'
 
 import {
     useState,
@@ -37,15 +38,7 @@ export {
     render,
     h,
     h as createElement,
-    useState,
-    useEffect,
-    useAction,
-    useRef,
-    useMemo,
-    useLayoutEffect,
-    useContext,
-    useReducer,
-    useCallback
+    resolveTemplate
 }
 
 export {
@@ -55,6 +48,15 @@ export {
 }
 
 export {
+    useState,
+    useEffect,
+    useAction,
+    useRef,
+    useMemo,
+    useLayoutEffect,
+    useContext,
+    useReducer,
+    useCallback,
     createContext
 }
 

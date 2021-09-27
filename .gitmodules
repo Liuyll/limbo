@@ -1,6 +1,6 @@
-[submodule "src/limbo-template-parser"]
-	path = src/limbo-template-parser
+[submodule "packages/limbo-template-parser"]
+	path = packages/limbo-template-parser
 	url = https://github.com/Liuyll/limbo-template-parser
-[submodule "src/limbo-test"]
-	path = src/limbo-test
+[submodule "packages/limbo-test"]
+	path = packages/limbo-test
 	url = https://github.com/liuyll/limbo-test

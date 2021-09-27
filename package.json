@@ -2,26 +2,27 @@
   "name": "limbos",
   "author": "liuyll",
   "license": "MIT",
-  "main": "src",
+  "main": "lib/limbo.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/liuyll/limbo"
   },
   "workspaces": [
-    "src/limbo-template-parser"
+    "packages/*"
   ],
   "scripts": {
     "build": "rollup -c",
-    "build-all": "npm run build && npm run build --workspaces"
+    "build-test": "npm run build && npx gulp",
+    "build-all": "npm run build && npm run build --workspace=limbo-template-parser"
   },
   "files": [
     "lib/**/*.js",
-    "lib/**/*.map",
-    "src/**"
+    "lib/**/*.map"
   ],
   "devDependencies": {
     "babel-eslint": "^10.1.0",
     "eslint": "^6.8.0",
+    "gulp": "^4.0.2",
     "rollup": "^2.32.1"
   },
   "dependencies": {
