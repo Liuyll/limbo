@@ -100,5 +100,5 @@ function siftup(heap, idx, cmp) {
     siftdown(heap, startIdx, idx, cmp)
 }
 
-module.exports = heapq
-// export default heapq
+// module.exports = heapq
+export default heapq

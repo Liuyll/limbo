@@ -7,8 +7,12 @@
     "type": "git",
     "url": "https://github.com/liuyll/limbo"
   },
+  "workspaces": [
+    "src/limbo-template-parser"
+  ],
   "scripts": {
-    "build": "rollup -c"
+    "build": "rollup -c",
+    "build-all": "npm run build && npm run build --workspaces"
   },
   "files": [
     "lib/**/*.js",
