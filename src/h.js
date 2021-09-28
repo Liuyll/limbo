@@ -3,6 +3,27 @@ import { isPrimitive,isArray } from './helper/utils'
 import { __LIMBO_SUSPENSE } from './core/symbol'
 
 const __LIMBO_COMPONENT = Symbol('vnode')
+
+/** @jsxRuntime classic */
+/**
+ * limbo 支持classic jsx转化
+ * eg: 
+ * in:
+ * const profile = (
+    <div>
+        <img src="avatar.png" className="profile" />
+        <h3>{[user.firstName, user.lastName].join(" ")}</h3>
+    </div>
+   );
+   ---------------->
+   out:
+   const profile = React.createElement(
+    "div",
+    null,
+    React.createElement("img", { src: "avatar.png", className: "profile" }),
+    React.createElement("h3", null, [user.firstName, user.lastName].join(" "))
+   );
+ */
 function createElement(type,data,...children) {
     const patchFlag = children.length 
         ? typeof children[children - 1] === 'number' ? children[children.length - 1] : null 
@@ -24,7 +45,8 @@ function createElement(type,data,...children) {
         ...props
     } = _props
 
-    if(name) type.name = name
+    // avoid use name as prop
+    if(name && typeof type !== 'string') type.name = name
     children = normalizeChildren(children)
 
     if(children.length) props.children = children.length === 1 ? children[0] : children

@@ -1,4 +1,7 @@
-const { parse } = require('../packages/limbo-template-parser/lib/index')
+/* eslint-disable */
+
+const { parse } = require('../packages/limbo-template-parser/lib')
+const { transformJsx2Vd } = require('../lib/limbo')
 
 const template = `
     <div test test1="qwe"> 
@@ -8,4 +11,7 @@ const template = `
 `
 
 const ret = parse(template)
-console.log(ret, ret.children[1].attributes)
+const vd = transformJsx2Vd(template)
+debugger;
+console.log(vd)
+// console.log(ret, '\n ss', ret.children[1].children[0])

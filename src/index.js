@@ -5,6 +5,8 @@ import { createContext } from './api/context'
 import KeepAlive from './component/keep-alive'
 import { Fragment } from './component/fragment'
 import { resolveTemplate } from './core/template'
+import { transformJsx2Vd } from './debug'
+import { parse } from '../packages/limbo-template-parser/lib'
 
 import {
     useState,
@@ -34,6 +36,7 @@ const limbo = {
     Fragment,
 }
 
+// limbo doms
 export {
     render,
     h,
@@ -41,12 +44,14 @@ export {
     resolveTemplate
 }
 
+// limbo components
 export {
     Suspense,
     KeepAlive,
     Fragment
 }
 
+// limbo apis
 export {
     useState,
     useEffect,
@@ -58,6 +63,12 @@ export {
     useReducer,
     useCallback,
     createContext
+}
+
+// limbo debugs
+export {
+    transformJsx2Vd,
+    parse
 }
 
 export default limbo

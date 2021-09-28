@@ -50,6 +50,7 @@ export function setTextContent(fiber,value) {
 }
 
 export function mountElement(fiber) {
+    // if(fiber.type === 'text') console.log('zzzzz:', fiber.value, fiber)
     if(isFn(fiber.type)) throw new Error('vnode is not Element Type')
     const dom = 
             fiber.type === 'text' 
