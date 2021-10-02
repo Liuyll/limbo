@@ -109,15 +109,27 @@ export function shouldYield() {
 }
 
 export const planWork = (() => {
-    const { port1,port2 } = new MessageChannel()
-    port1.onmessage = tickWork
+    if(typeof MessageChannel !== 'undefined') {
+        const { port1,port2 } = new MessageChannel()
+        port1.onmessage = tickWork
+        return (cb) => {
+            const work = (timestamp) => {
+                computedTime(timestamp)
+    
+                // cb只处理hooks，不执行调度
+                if(cb) cb(timestamp)
+                else port2.postMessage(null) 
+            }
+            requestAnimationFrameWithTimeout(work)
+        }
+    }
+
+    // setTimeout 降级
     return (cb) => {
         const work = (timestamp) => {
             computedTime(timestamp)
-
-            // cb只处理hooks，不执行调度
             if(cb) cb(timestamp)
-            else port2.postMessage(null) 
+            else setTimeout(tickWork)
         }
         requestAnimationFrameWithTimeout(work)
     }
