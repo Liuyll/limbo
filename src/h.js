@@ -56,7 +56,7 @@ function createElement(type,data,...children) {
     const additionalProp = {}
 
     if(__suspense_container) additionalProp.__suspense_container = true
-    if(typeof type === 'function' && type.prototype.constructor.name === 'Suspense') {
+    if(typeof type === 'function' && type.prototype && type.prototype.constructor.name === 'Suspense') {
         __type = __LIMBO_SUSPENSE
         if(!fallback) throw new Error('Suspense must get fallback prop!')
         fallback.__suspense_fallback = true
@@ -65,6 +65,7 @@ function createElement(type,data,...children) {
         additionalProp.boundary = boundary
         additionalProp.__suspenseFlag = Symbol('suspense')
     }
+    
     return {
         __type,
         key,
