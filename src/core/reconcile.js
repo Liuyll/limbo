@@ -14,6 +14,11 @@ const ADD       = 0b00001000
 const NOWORK    = 0b00010000
 const SUSPENSE  = 0b00100000
 
+const errorCatchMap = new Map()
+const signError = (errMsg, errStack) => {
+    return errMsg + '__limbo_flag_' + errStack
+}
+
 function createFiberRoot(vnode,mountDom,done) {
     return {
         node: mountDom,
@@ -85,8 +90,15 @@ function performUnitWork(currentCommitRoot, currentExecuteWorkUnit, dopast) {
             currentExecuteWorkUnit = reconcile(currentCommitRoot, currentExecuteWorkUnit)
         } catch(err) {
             // TODO: Error Boundary
-            // eslint-disable-next-line
-            console.log(err)
+            
+            const errSign = signError(err.toString(), err.stack)
+            if(errorCatchMap.get(errSign) === undefined) errorCatchMap.set(errSign, 0)
+            const currentErrorCount = errorCatchMap.get(errSign)
+            if(currentErrorCount === 50) {
+                throw new Error(`error throw count exceed limit: 50 \r\nerror: ${err} \r\nerrStack: ${err.stack}`)
+            }
+            errorCatchMap.set(errSign, currentErrorCount + 1)
+            
             break
         }
     }
@@ -363,8 +375,8 @@ function updateHost(elementFiber) {
     } 
     parentElementFiber.last = elementFiber
     elementFiber.node.last = null 
-
     reconcileChildren(elementFiber,elementFiber.props.children)
+    
     return true
 }
 
