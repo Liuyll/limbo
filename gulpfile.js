@@ -18,12 +18,12 @@ gulp.task('copy2test', (done) => {
         .pipe(
             gulp.dest('./packages/limbo-test/html')
         )
-    
+
     gulp.src('./lib/limbo.esm.js.map')
         .pipe(
             gulp.dest('./packages/limbo-test/html')
         )
-        
+
     done()
 })
 

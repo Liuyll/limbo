@@ -101,8 +101,8 @@ function useMemo(cb,deps) {
     })) {
         if(shallowEqual(deps,hook.deps)) return hook.state
         else return (hook.state = cb())
-    } 
-    return hook.state 
+    }
+    return hook.state
 }
 
 
@@ -114,10 +114,10 @@ function useContext(context,selector = (v) => v) {
 
     useActionEffect(() => {
         let subFn = (newValue) => {
-            if(selector(newValue) === val.current) return 
+            if(selector(newValue) === val.current) return
             val.current = newValue
             forceUpdate()
-        } 
+        }
 
         context.addSub(subFn)
         return () => context.deleteSub(subFn)

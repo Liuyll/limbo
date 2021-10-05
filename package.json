@@ -11,9 +11,10 @@
     "packages/*"
   ],
   "scripts": {
+    "init": "git submodule update --init && git submodule foreach 'git checkout main && npm ci' && npm run build-all",
     "build": "rollup -c",
-    "build-test": "npm run build && npx gulp",
-    "build-all": "npm run build && npm run build --workspace=limbo-template-parser",
+    "build-test": "npm run build-all && npx gulp",
+    "build-all": "npm run build --workspace=limbo-template-parser && npm run build",
     "build-parser": "npm run build --workspace=limbo-template-parser"
   },
   "files": [
@@ -23,13 +24,10 @@
   "devDependencies": {
     "@babel/core": "^7.15.5",
     "@babel/plugin-transform-react-jsx": "^7.14.9",
+    "@rollup/plugin-commonjs": "^21.0.0",
     "babel-eslint": "^10.1.0",
     "eslint": "^6.8.0",
     "gulp": "^4.0.2",
-    "rollup": "^2.32.1",
-    "rollup-plugin-commonjs": "^10.1.0"
-  },
-  "dependencies": {
-    "shallowequal": "^1.1.0"
+    "rollup": "^2.32.1"
   }
 }

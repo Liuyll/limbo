@@ -46,7 +46,7 @@ function schedule(){
     }
 
     return !!currentTask
-}   
+}
 
 export function ensureHighPriorityTaskToQueue(task) {
     cancelSchedule()
@@ -61,12 +61,12 @@ function computedTime(rafTime) {
     const previousFrameDeadline = currentFrameDeadline
     // 下一帧截止时间: 剩余时间 + 固定帧长
     NEXT_FRAME_LENGTH = rafTime - previousFrameDeadline + ACTIVE_FRAME_LENGTH
-    
+
     // 自适应固定帧长
     if(NEXT_FRAME_LENGTH < ACTIVE_FRAME_LENGTH && FRAME_LENGTH < ACTIVE_FRAME_LENGTH) {
         if(NEXT_FRAME_LENGTH < 8) NEXT_FRAME_LENGTH = 8
         else ACTIVE_FRAME_LENGTH = NEXT_FRAME_LENGTH > FRAME_LENGTH ? NEXT_FRAME_LENGTH : FRAME_LENGTH
-    } 
+    }
     FRAME_LENGTH = NEXT_FRAME_LENGTH
 
     currentFrameDeadline = rafTime + ACTIVE_FRAME_LENGTH
@@ -105,7 +105,7 @@ export function shouldYield() {
         breakSchedule = false
         return true
     }
-    return getTime() > currentFrameDeadline    
+    return getTime() > currentFrameDeadline
 }
 
 export const planWork = (() => {
@@ -115,10 +115,10 @@ export const planWork = (() => {
         return (cb) => {
             const work = (timestamp) => {
                 computedTime(timestamp)
-    
+
                 // cb只处理hooks，不执行调度
                 if(cb) cb(timestamp)
-                else port2.postMessage(null) 
+                else port2.postMessage(null)
             }
             requestAnimationFrameWithTimeout(work)
         }

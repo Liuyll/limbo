@@ -7,7 +7,7 @@ const __LIMBO_COMPONENT = Symbol('vnode')
 /** @jsxRuntime classic */
 /**
  * limbo 支持classic jsx转化
- * eg: 
+ * eg:
  * in:
  * const profile = (
     <div>
@@ -25,12 +25,12 @@ const __LIMBO_COMPONENT = Symbol('vnode')
    );
  */
 function createElement(type,data,...children) {
-    const patchFlag = children.length 
-        ? typeof children[children - 1] === 'number' ? children[children.length - 1] : null 
+    const patchFlag = children.length
+        ? typeof children[children - 1] === 'number' ? children[children.length - 1] : null
         : null
     // 兼容ts-loader和babel-jsx-transform的不同
     if(!data) data = {}
-    let { 
+    let {
         key = null,
         ref = null,
         name = null,
@@ -65,7 +65,7 @@ function createElement(type,data,...children) {
         additionalProp.boundary = boundary
         additionalProp.__suspenseFlag = Symbol('suspense')
     }
-    
+
     return {
         __type,
         key,

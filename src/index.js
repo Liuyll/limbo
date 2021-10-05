@@ -4,9 +4,9 @@ import { Suspense } from './component/suspense'
 import { createContext } from './api/context'
 import KeepAlive from './component/keep-alive'
 import { Fragment } from './component/fragment'
-import { resolveTemplate } from './core/template'
+import { resolveTemplate } from './core/template/resolve'
 import { transformJsx2Vd } from './debug'
-import { parse } from '../packages/limbo-template-parser/lib'
+import { parse } from '../packages/limbo-template-parser/lib/esm'
 
 import {
     useState,

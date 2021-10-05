@@ -2,19 +2,12 @@
 
 a mini-react force on / concurrent mode / event-system / fiber
 
-#### 提醒
-
-如果需要，您可以使用类似的框架
-
-[anu](https://github.com/RubyLouvre/anu)
-
-[preact](https://github.com/preactjs/preact)
-
-## advance
-+ `schedule`
-+ `高性能渲染`
-+ `suspense`
-+ `简单且体积小`
+## why limbo
++ 支持自适应帧率的`schedule`系统
++ 比react性能更好的高效渲染与更新
++ 完整的中断与恢复系统`suspense`
++ 支持模板与`JSX`渲染
++ 体积极小
 
 ### limbo lis diff
 `limbo`引入了算法优化`diff`过程，在极端情况下与`vue3`的`children reconcile`性能一致。
@@ -102,21 +95,60 @@ function App() {
 `limbo`提供了几个重要的组件:
 + Context
 + Keep-Alive
++ Fragment
 
 #### Keep-Alive
 `Keep-Alive`组件类似`Vue`的`Keep-Alive`组件，它支持在组件卸载后依然保留`vnode`。并在恢复时保证状态不丢失。
 
+#### Context
+`Context`是标准的上下文缓存组件，具体功能参考`React`。
 
-## 目前react调度存在的问题
+#### Fragment
+`Fragment`是一个包装组件，它不会被实际渲染。
+```
+eg: 以下三个组件都会被渲染
 
-1. 如何确定最小调度单位(minimal time slice)
-2. 每秒60帧在高刷新率的时代已经不足
-3. 优先级如何确认
-4. 已存在的系统如何和全新的调度融合？(参考事件系统)
-5. reconcile在异步更新时出现的重复生命周期问题，如何在未来的`v17`版本平滑更新？
-6. ......
+<Fragment>
+  <Parent1 />
+  <Parent2 />
+  <Parent3 />
+</Fragment>
+```
 
-  当然，`react`已经解决了大量的问题，包括引入`fiber`架构，动态增长每帧可用时间等，但第`3`条问题之复杂，以至于完全可以独立于`schedule`来进行讨论，第 `4,5`条问题也导致`react`无法在不修改老旧的代码情况下平滑开启异步更新。以至于我们不能看到一个稳定版本的调度来进行学习，加上晦涩难懂的源码，导致了很高的学习成本。
+## template
+`limbo`拥有一套完善的模板渲染引擎。引擎将会在内部对模板内容进行优化，在可能出现大量变更的场景下，模板拥有比`JSX`更高效的更新。
+
+### 模板指令
++ `l-if`
++ `l-elif`
++ `l-else`
++ `l-bind`
++ `l-for`
+
+#### 循环
+模板支持循环功能，例子如下:
+```
+<div l-for="(data, index) in array">{data}</div>
+```
+上面的模板会被编译为:
+```
+array.map((data, index) => <div>{data}</div>)
+```
+
+#### 条件
+模板支持条件功能，通过`l-if`, `l-elif`, `l-else`来指定对应的条件分支。
+
+一个简单的`demo`如下:
+```
+<div l-if="isRender">if</div>
+<div l-elif="isRender2">elif</div>
+<div l-else>else</div>
+```
+
+需要注意的是，上面代码里的`l-if`对应的`isRender`不是字符串，而是`Javascript`变量`isRender`。
+
+注意: 条件指令里不能将字符作为条件变量，所有条件变量都被编译为`Javascript`变量。
+
 
 
 
