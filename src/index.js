@@ -5,7 +5,7 @@ import { createContext } from './api/context'
 import KeepAlive from './component/keep-alive'
 import { Fragment } from './component/fragment'
 import { resolveTemplate } from './core/template/resolve'
-import { transformJsx2Vd } from './debug'
+// import { transformJsx2Vd } from './debug'
 import { parse } from '../packages/limbo-template-parser/lib/esm'
 
 import {
@@ -67,7 +67,7 @@ export {
 
 // limbo debugs
 export {
-    transformJsx2Vd,
+    // transformJsx2Vd,
     parse
 }
 
