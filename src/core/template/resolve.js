@@ -69,8 +69,14 @@ const resolveParsedNode = (node) => {
 const resolveASTAttrToRenderParams = (attrs) => {
     let attrParams = '{'
     for(let attr of attrs) {
+        let isEvent
+        if(attr.name[0] === '@') {
+            isEvent = true
+            attr.name = 'on' + attr.name[1]?.toUpperCase() + attr.name?.slice(2)
+        }
+
         let attrStr = `${attr.name}:`
-        if(attr.dataKey) {
+        if(attr.dataKey || isEvent) {
             // attr: value
             attrStr += attr.value
             // attr: 'value'

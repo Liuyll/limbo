@@ -21,3 +21,14 @@ export function isPrimitive (value) {
 export function isArray(t) {
     return Object.prototype.toString.call(t) === '[object Array]'
 }
+
+/**
+ * create limbo inner error
+ * shield limbo stack
+ */
+export function LimboError(err, ignore) {
+    const error = new Error(err)
+
+    Error.captureStackTrace(this, ignore)
+    return error
+}

@@ -5,6 +5,7 @@ export { getCurrentFiber } from '../fiber'
 import { SCU,insertElement,deleteElement, setRef, replaceElement } from '../helper/tools'
 import { mountElement, updateElement, setTextContent } from '../dom'
 import { __LIMBO_SUSPENSE } from '../core/symbol'
+import { LimboError } from '../helper/utils'
 
 const DELETE    = 0b00000001
 const UPDATE    = 0b00000010
@@ -90,12 +91,11 @@ function performUnitWork(currentCommitRoot, currentExecuteWorkUnit, dopast) {
             currentExecuteWorkUnit = reconcile(currentCommitRoot, currentExecuteWorkUnit)
         } catch(err) {
             // TODO: Error Boundary
-
             const errSign = signError(err.toString(), err.stack)
             if(errorCatchMap.get(errSign) === undefined) errorCatchMap.set(errSign, 0)
             const currentErrorCount = errorCatchMap.get(errSign)
             if(currentErrorCount === 50) {
-                throw new Error(`error throw count exceed limit: 50 \r\n${err.stack}`)
+                throw new LimboError(`error throw count exceed limit: 50 \r\n${err.stack}`, performUnitWork)
             }
             errorCatchMap.set(errSign, currentErrorCount + 1)
 
