@@ -110,25 +110,23 @@ export function shouldYield() {
 
 export const planWork = (() => {
     return (cb) => {
+        let _port1, _port2, work
         if(typeof MessageChannel !== 'undefined') {
-            const { port1,port2 } = new MessageChannel()
-            port1.onmessage = tickWork
-            return (cb) => {
-                const work = (timestamp) => {
-                    computedTime(timestamp)
-
-                    // cb只处理hooks，不执行调度
-                    if(cb) cb(timestamp)
-                    else port2.postMessage(null)
-                }
-                requestAnimationFrameWithTimeout(work)
+            if(!_port1 && !_port2) {
+                const { port1,port2 } = new MessageChannel()
+                port1.onmessage = tickWork
+                _port1 = port1
+                _port2 = port2
             }
         }
 
-        const work = (timestamp) => {
+        work = (timestamp) => {
             computedTime(timestamp)
             if(cb) cb(timestamp)
-            else setTimeout(tickWork)
+            else {
+                if(_port2) _port2.postMessage(null)
+                else setTimeout(tickWork)
+            }
         }
 
         requestAnimationFrameWithTimeout(work)
