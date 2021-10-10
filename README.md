@@ -118,6 +118,23 @@ eg: 以下三个组件都会被渲染
 ## template
 `limbo`拥有一套完善的模板渲染引擎。引擎将会在内部对模板内容进行优化，在可能出现大量变更的场景下，模板拥有比`JSX`更高效的更新。
 
+### 编译模板
+`jsx`与`template`是两个不同的写法，并不能互相兼容。
+
+使用`template`，需要在`template`外层的函数前一行添加注释`//@template`
+一个例子如下:
+```
+//@template
+const Comp = () => {
+  const [data] = useState([1,2,3])
+  return <div l-for="v in data">{v}</div>
+}
+```
+
+当`template`无法编译（出现语法错误）时，会自动退化为`JSX`。
+
+需要注意的是，不要在`template`里使用注释。
+
 ### 模板指令
 + `l-if`
 + `l-elif`
