@@ -1,9 +1,18 @@
 import { transform, MergeType } from '../../../packages/limbo-template-parser/lib/esm'
 import { renderCondTemplate } from './generateTemplateStr'
 
-let hstr = 'createElement'
+const protectHStr = (h) => {
+    return `(typeof ${h} !== 'undefined' 
+            ? ${h} : typeof limbo !== 'undefined'
+            ? limbo.${h} : typeof limbos !== 'undefined'
+            ? limbos.${h} : typeof Limbo !== 'undefined'
+            ? Limbo.${h} : function() { throw new Error("must import limbo from 'limbo'") }
+        )`
+}
+
+let hstr = protectHStr('createElement')
 const setCreateElementStr = (s) => {
-    hstr = s
+    hstr = protectHStr(s)
 }
 
 const componentPat = /^[A-Z].*/
